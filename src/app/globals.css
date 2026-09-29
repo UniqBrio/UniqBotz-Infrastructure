@@ -1,0 +1,91 @@
+@import "tailwindcss";
+
+/*
+ * UniqBotz Infrastructure design tokens.
+ * Neutral control-plane surfaces; colour is reserved for status & severity.
+ * Status hues follow a validated status palette (good / warning / serious / critical)
+ * and are always paired with an icon + text label.
+ */
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  --color-canvas: #f4f5f7;
+  --color-surface: #ffffff;
+  --color-surface-2: #f8f9fb;
+  --color-line: #e2e5ea;
+  --color-line-strong: #cdd2da;
+  --color-ink: #111820;
+  --color-ink-2: #414b59;
+  --color-ink-3: #6a7483;
+
+  --color-chrome: #0d1218;
+  --color-chrome-2: #151c25;
+  --color-chrome-line: #232c38;
+  --color-chrome-ink: #c5cdd8;
+  --color-chrome-ink-2: #8591a2;
+
+  --color-accent: #2a78d6;
+  --color-accent-strong: #1f5fae;
+  --color-accent-soft: #e8f1fc;
+
+  /* status: good */
+  --color-ok: #0ca30c;
+  --color-ok-ink: #0b5e0b;
+  --color-ok-soft: #e8f5e8;
+  --color-ok-line: #a8d8a8;
+  /* LOW → warning */
+  --color-low: #fab219;
+  --color-low-ink: #6e4a00;
+  --color-low-soft: #fff5dc;
+  --color-low-line: #f1cf7c;
+  /* MEDIUM → serious */
+  --color-med: #ec835a;
+  --color-med-ink: #8a3310;
+  --color-med-soft: #fdede5;
+  --color-med-line: #eeb296;
+  /* HIGH → critical */
+  --color-high: #d03b3b;
+  --color-high-ink: #8f1d1d;
+  --color-high-soft: #fbe9e9;
+  --color-high-line: #e7a1a1;
+
+  --color-info: #2a78d6;
+  --color-info-ink: #174a88;
+  --color-info-soft: #e8f1fc;
+  --color-info-line: #a9c9ef;
+
+  --color-neutral-soft: #eef0f3;
+  --color-neutral-line: #d3d8df;
+}
+
+@layer base {
+  html,
+  body {
+    background: var(--color-canvas);
+    color: var(--color-ink);
+  }
+  body {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+  dialog::backdrop {
+    background: rgb(13 18 24 / 0.55);
+  }
+}
+
+@utility num {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (forced-colors: active) {
+  .status-dot {
+    forced-color-adjust: none;
+  }
+}
