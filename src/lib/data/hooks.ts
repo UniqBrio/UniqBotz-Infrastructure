@@ -50,6 +50,8 @@ export const useAlerts = (appId?: ApplicationId) => useResource(`alerts:${scopeK
 export const useAuditLog = (appId?: ApplicationId) =>
   useResource(`audit:${scopeKey(appId)}`, (s) => s.listAuditLog(appId));
 export const useSettings = () => useResource("settings", (s) => s.getSettings());
+export const useSession = () => useResource("session", (s) => s.getSession());
+export const useDeletionReview = (jobId: string) => useResource(`review:${jobId}`, (s) => s.getDeletionReview(jobId));
 
 /** Access to write operations; call `invalidate()` after a successful write. */
 export function useMutations() {

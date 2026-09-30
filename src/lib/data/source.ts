@@ -6,7 +6,10 @@ import type {
   ArchiveCandidate,
   ArchiveJob,
   AuditEntry,
+  DeletionReviewData,
   InfrastructureSettings,
+  ReviewEvidence,
+  SessionInfo,
   RetentionPolicy,
   RetentionPolicyInput,
   TableHealth,
@@ -52,6 +55,13 @@ export interface InfrastructureDataSource {
 
   getSettings(): Promise<InfrastructureSettings>;
   updateSettings(settings: InfrastructureSettings): Promise<InfrastructureSettings>;
+
+  /** Phase 3C: who is signed in, their roles and permissions (mock: no authentication). */
+  getSession(): Promise<SessionInfo>;
+  /** Phase 3C: evidence, approvals and authorization state for a job. null when not available (mock data). */
+  getDeletionReview(jobId: string): Promise<DeletionReviewData | null>;
+  /** Phase 3C: record an APPROVER decision bound to the reviewed evidence. Never deletes. */
+  submitApprovalDecision(jobId: string, decision: "approve" | "reject", evidenceAck: ReviewEvidence, comment?: string): Promise<void>;
 }
 
 export class DataSourceError extends Error {

@@ -45,7 +45,7 @@ describe("application connection config — secrets are references, never values
     const r = new EnvSecretResolver({ A: "synthetic-placeholder" });
     await expect(r.resolve("env:A")).resolves.toBe("synthetic-placeholder");
     await expect(r.resolve("env:MISSING")).rejects.toThrow(/not set/);
-    await expect(r.resolve("vault:A")).rejects.toThrow(/only env:/);
+    await expect(r.resolve("vault:A")).rejects.toThrow(/no 'vault' secret store is configured/);
   });
 });
 

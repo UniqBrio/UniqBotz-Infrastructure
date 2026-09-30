@@ -17,6 +17,7 @@ const open = (): DeletionGateInput => ({
   jobGraphHash: "g",
   liveGraphHash: "g",
   candidateSetIntact: true,
+  authorizationReasons: [],
   now,
 });
 
@@ -46,6 +47,8 @@ describe("deletion gate", () => {
     [{ jobSchemaHash: null }, /schema hash changed/],
     [{ liveGraphHash: "changed" }, /FK graph changed/],
     [{ candidateSetIntact: false }, /integrity/],
+    [{ authorizationReasons: ["DELETION NOT AUTHORIZED: authorization has expired"] }, /authorization has expired/],
+    [{ authorizationReasons: undefined }, /DELETION NOT AUTHORIZED/],
   ])("refuses: %o", (patch, reason) => {
     const r = evaluateDeletionGate({ ...open(), ...patch });
     expect(r.allowed).toBe(false);

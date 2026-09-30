@@ -14,6 +14,7 @@ import { CardGridSkeleton, EmptyState } from "@/components/ui/States";
 import { LinkButton } from "@/components/ui/Button";
 import { ArchiveJobPipeline } from "@/components/archive/ArchiveJobPipeline";
 import { DeletionReview } from "@/components/archive/DeletionReview";
+import { DeletionApprovalPanel } from "@/components/archive/DeletionApprovalPanel";
 import { AuditLogTable } from "@/components/audit/AuditLogTable";
 import { JobStatusBadge } from "@/components/status/JobStatusBadge";
 import { VerificationStatus } from "@/components/status/VerificationStatus";
@@ -64,6 +65,8 @@ export function ArchiveJobDetailView({ jobId }: { jobId: string }) {
               <Card title="Safety gate" description="Deletion is impossible unless the stored archive is verified. Verification failure → 0 records deleted.">
                 <VerificationStatus job={job} />
               </Card>
+
+              <DeletionApprovalPanel jobId={job.id} />
 
               <div className="grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
                 <Card title="Pipeline" description={`Overall progress ${job.progressPct}%`}>

@@ -32,4 +32,6 @@ export const CONTROL_PLANE_TABLES = [
   "table_stats_snapshots", "database_stats_snapshots", "retention_policies", "candidate_previews",
   "archive_jobs", "archive_job_tables", "archive_job_candidates", "archive_manifests", "archive_verifications",
   "archive_deletion_batches", "alerts", "audit_logs", "worker_leases", "system_settings",
+  // 0002 (Phase 3C)
+  "operators", "operator_roles", "deletion_approvals", "deletion_authorizations", "archive_schedules", "notification_outbox",
 ] as const;

@@ -2,7 +2,9 @@ import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { collectApplication } from "../../health/collector";
-import { approveDeletion, cancelJob, createJob, DuplicateJobError, PolicyNotReadyError } from "../../jobs/jobs";
+import { cancelJob, createJob, DuplicateJobError, PolicyNotReadyError } from "../../jobs/jobs";
+import { ApprovalRefusedError, evidenceKey, loadDeletionEvidence, recordApprovalDecision } from "../../approvals/approvals";
+import { createTestOperators } from "./harness";
 import { loadCandidates } from "../../jobs/candidates";
 import { CrashSignal } from "../../jobs/faults";
 import { fingerprintSql } from "../../schema/fingerprint";
@@ -32,7 +34,7 @@ describe("retention policy loading → job creation", () => {
 
   it("refuses when no grace period is configured (no built-in default)", async () => {
     await enableAttendanceGroup(env.cp, { grace: null });
-    await expect(createJob(env.cp, { id: "J-NOGRACE", applicationId: APP_ID, groupRoot: "public.attendance", createdBy: "test", now: NOW })).rejects.toThrow(/grace period/);
+    await expect(createJob(env.cp, { id: "J-NOGRACE", applicationId: APP_ID, groupRoot: "public.attendance", createdBy: "test", now: NOW })).rejects.toThrow(/CANNOT RUN — GRACE PERIOD NOT CONFIGURED/);
     await env.cp.query(`UPDATE control.system_settings SET default_grace_period_days = 7`);
     const spec = await createJob(env.cp, { id: "J-SYSGRACE", applicationId: APP_ID, groupRoot: "public.attendance", createdBy: "test", now: NOW });
     expect(spec.cutoffDay).toBe("2026-03-23"); // system default applied
@@ -98,7 +100,13 @@ describe("ARCHIVE_AND_VERIFY_ONLY", () => {
   });
 
   it("approval is refused for a verify-only job and audited", async () => {
-    await expect(approveDeletion(env.cp, "J-1", "operator")).rejects.toThrow(/cannot be approved/);
+    await createTestOperators(env.cp);
+    const ev = await loadDeletionEvidence(env.cp, "J-1");
+    const err = await recordApprovalDecision(env.cp, { jobId: "J-1", operatorId: "approver-a", decision: "approve", evidenceAck: evidenceKey(ev!) }).catch((e) => e);
+    expect(err).toBeInstanceOf(ApprovalRefusedError);
+    expect(err.message).toMatch(/^DELETION NOT AUTHORIZED/);
+    expect(err.reasons.join("\n")).toMatch(/ARCHIVE_AND_VERIFY_ONLY — this job can never be approved/);
+    expect(err.reasons.join("\n")).toMatch(/APPROVAL POLICY NOT CONFIGURED/);
     expect((await job("J-1")).status).toBe("ready_for_deletion");
     const blocked = (await auditActions(env.cp, "J-1")).filter((a) => a.action === "deletion_blocked");
     expect(JSON.stringify(blocked.at(-1)!.detail)).toMatch(/ARCHIVE_AND_VERIFY_ONLY/);

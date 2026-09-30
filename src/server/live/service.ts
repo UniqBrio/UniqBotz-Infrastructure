@@ -2,6 +2,10 @@ import "server-only";
 import pg from "pg";
 import { deriveApplicationHealth } from "@/lib/domain/health";
 import type { ApplicationHealth, ArchiveJob, TableHealth } from "@/lib/domain/types";
+import { isRole } from "@/lib/auth/permissions";
+import { approvalPolicyGaps, evaluateApprovals, listAuthorizations, loadDeletionEvidence } from "../../../worker/approvals/approvals";
+import { loadSettings } from "../../../worker/controlplane/repository";
+import { mapDeletionReview } from "./review";
 import {
   mapAlert, mapApplication, mapAudit, mapCandidate, mapJob, mapPolicy, mapSettings, mapTable,
   type AlertRow, type AppRow, type AuditRow, type PolicyRow, type PreviewRow, type SettingsRow, type TableRow,
@@ -124,4 +128,34 @@ export async function listAlerts(applicationId?: string) {
 
 export async function listAuditLog(applicationId?: string) {
   return (await q<AuditRow>(`SELECT * FROM control.audit_logs WHERE ($1::text IS NULL OR application_id = $1) ORDER BY at DESC, id DESC LIMIT 500`, [applicationId ?? null])).map(mapAudit);
+}
+
+/* ------------------------------------------------------------------ Phase 3C: authorization reads */
+
+/** Roles for an authenticated subject (control.operator_roles). Unknown subject → null (no roles). */
+export async function lookupOperatorRoles(subject: string) {
+  const op = (await q<{ active: boolean }>(`SELECT active FROM control.operators WHERE id = $1`, [subject]))[0];
+  if (!op) return null;
+  const roles = (await q<{ role: string }>(`SELECT role FROM control.operator_roles WHERE operator_id = $1 ORDER BY role`, [subject])).map((r) => r.role);
+  return { active: op.active, roles: roles.filter(isRole) };
+}
+
+/** True when any registered application is a production application (then anonymous reads are refused). */
+export async function hasProductionApplications(): Promise<boolean> {
+  return (await q<{ n: string }>(`SELECT count(*) n FROM control.applications WHERE environment = 'production'`))[0]!.n !== "0";
+}
+
+/** Read-only deletion-review bundle: evidence, approvals, authorizations and the approval-policy state. */
+export async function getDeletionReview(jobId: string) {
+  const client = await db().connect();
+  try {
+    const ev = await loadDeletionEvidence(client, jobId);
+    if (!ev) return null;
+    const settings = await loadSettings(client);
+    const gaps = approvalPolicyGaps(settings);
+    const approvals = await evaluateApprovals(client, ev, settings, new Date());
+    return mapDeletionReview(ev, approvals.records, await listAuthorizations(client, jobId), settings, gaps);
+  } finally {
+    client.release();
+  }
 }

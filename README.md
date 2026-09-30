@@ -4,10 +4,10 @@ Central, internal control plane for **data retention and archival** across UniqB
 (RosiFit, UniqBrio, Jalsa Restaurant and future products). Each application is an independent
 Supabase project with its own schema; this dashboard monitors them all from one place.
 
-> **Status — Phase 3B.** Control plane + **read-only** live monitoring + archive-and-verify worker.
-> **Production deletion, automated scheduling and notifications are DISABLED.** By default the UI still runs
-> on typed mock data (`NEXT_PUBLIC_INFRA_DATA_SOURCE=live` switches it to the read-only control-plane API).
-> See [Phase 3B](#phase-3b-control-plane--read-only-live-monitoring).
+> **Status — Phase 3C (production-readiness preparation).** Read-only monitoring and archive-and-verify are implemented and tested
+> on synthetic local data. **Production deletion, automated scheduling and notifications are DISABLED.** The system is
+> **not production-ready**: it is waiting on business decisions and hosted-Supabase validation.
+> See [Phase 3C](#phase-3c--production-readiness).
 
 ## Stack
 
@@ -138,3 +138,56 @@ PRODUCTION DELETION: DISABLED · AUTOMATED SCHEDULING: DISABLED · PRODUCTION NO
 
 Details, limitations, unresolved decisions and the exact steps before any production deletion:
 [`PHASE_3B_IMPLEMENTATION_RECORD.md`](./PHASE_3B_IMPLEMENTATION_RECORD.md).
+
+## Phase 3C — Production Readiness
+
+**Current safety state**
+
+```
+READ-ONLY MONITORING: IMPLEMENTED       ARCHIVE-AND-VERIFY: IMPLEMENTED/TESTED (synthetic)
+PRODUCTION DELETION: DISABLED           AUTOMATED SCHEDULING: DISABLED        PRODUCTION NOTIFICATIONS: DISABLED
+```
+
+A green build is **not** production readiness. Production use is blocked until the decisions and validations below exist.
+
+**What Phase 3C added**
+
+- **Fail-safe configuration.** Missing values refuse with fixed messages, never a guess, e.g.:
+  - `CANNOT RUN — GRACE PERIOD NOT CONFIGURED`
+  - `CANNOT RUN — APPLICATION TIMEZONE NOT CONFIGURED`
+  - `CANNOT RUN — RETENTION DATE COLUMN NOT CONFIGURED`
+  - `DELETION NOT AUTHORIZED`
+  - `ARCHIVE EXECUTION UNAVAILABLE`
+- **Authentication boundary.** Server-side token verification; roles VIEWER / OPERATOR / APPROVER / ADMIN come from the control plane; writes are CSRF-safe.
+  - Reads are refused anonymously once a production application is registered.
+  - Nobody can execute deletion from the dashboard.
+  - See [`CONTROL_PLANE_SECURITY.md`](./CONTROL_PLANE_SECURITY.md).
+- **Approval workflow, execution disabled.** Archive verified → deletion review → evidence-bound approvals → ADMIN authorization → worker execution.
+  - The job page shows the evidence, the approval history and **PRODUCTION DELETION DISABLED**.
+  - The worker re-validates everything and still refuses while `ALLOW_DELETION=false`.
+- **Infrastructure abstractions.** Secret references by kind; a provider-neutral `ArchiveStorage` (no provider chosen; the local directory is for synthetic apps only; purge disabled); disabled scheduling and notification interfaces; a redacting structured logger.
+- **Read-only discovery.** `npx tsx worker/cli.ts discover <app> report.md` is the first production step. Every table becomes REVIEW_REQUIRED, and a monitor role with write privileges is flagged.
+
+**Required decisions:** [`PRODUCTION_DECISION_CHECKLIST.md`](./PRODUCTION_DECISION_CHECKLIST.md)
+
+- Supabase ownership/plans;
+- per-application time zone, date columns, policies, protected period, grace and target;
+- capacity thresholds (record thresholds stay 10L/11L/12L);
+- approvers and the approval policy;
+- archive provider, region and retention;
+- authentication provider and secret store;
+- legal questions.
+
+**Hosted validation requirement:** [`HOSTED_SUPABASE_VALIDATION_RUNBOOK.md`](./HOSTED_SUPABASE_VALIDATION_RUNBOOK.md)
+
+- 16 checks on a **disposable** project, with synthetic data, run by `worker/hosted-validation/validate.ts`.
+- The script refuses known production refs and non-empty databases.
+
+**Production pilot plan:** [`PRODUCTION_PILOT_PLAN.md`](./PRODUCTION_PILOT_PLAN.md) — one application, one low-risk table, read/archive/verify only, zero delete.
+
+Also see:
+
+- [`PHASE_3C_PRODUCTION_READINESS_GAP_REPORT.md`](./PHASE_3C_PRODUCTION_READINESS_GAP_REPORT.md)
+- [`ROSIFIT_READ_ONLY_DISCOVERY_REPORT.md`](./ROSIFIT_READ_ONLY_DISCOVERY_REPORT.md) — procedure prepared; discovery not yet performed
+- [`PRODUCTION_ARCHIVE_RUNBOOK.md`](./PRODUCTION_ARCHIVE_RUNBOOK.md)
+- [`PRODUCTION_DELETION_CHECKLIST.md`](./PRODUCTION_DELETION_CHECKLIST.md)

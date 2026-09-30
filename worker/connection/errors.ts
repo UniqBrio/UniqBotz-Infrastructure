@@ -10,11 +10,16 @@ export type FailureKind =
   | "auth" // 28P01 / 28000 — credentials rejected or expired
   | "permission" // 42501
   | "schema" // 42P01 / 42703 — relation/column vanished
+  | "configuration" // required configuration or secret missing (NotReadyError, SecretError, ARCHIVE EXECUTION UNAVAILABLE) — never retried
+  | "storage" // archive storage operation failed (ArchiveStorageError) — retry with backoff
   | "permanent";
 
 export function classifyError(e: unknown): FailureKind {
   const code = (e as { code?: string })?.code;
   const msg = String((e as { message?: string })?.message ?? e);
+  const name = (e as { name?: string })?.name;
+  if (name === "NotReadyError" || name === "SecretError" || name === "SecretResolutionError" || name === "ArchiveUnavailableError" || name === "ArchivePurgeDisabledError") return "configuration";
+  if (name === "ArchiveStorageError") return "storage";
   if (code === "55P03") return "lock_timeout";
   if (code === "57014") return "statement_timeout";
   if (code === "25006") return "read_only";
@@ -27,7 +32,7 @@ export function classifyError(e: unknown): FailureKind {
 }
 
 export function isRecoverable(kind: FailureKind): boolean {
-  return kind === "transient" || kind === "lock_timeout" || kind === "statement_timeout" || kind === "auth";
+  return kind === "transient" || kind === "lock_timeout" || kind === "statement_timeout" || kind === "auth" || kind === "storage";
 }
 
 export class RecoverableWorkerError extends Error {

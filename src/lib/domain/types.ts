@@ -359,7 +359,16 @@ export type AuditAction =
   | "deletion_reviewed"
   | "job_failed"
   | "alert_sent"
-  | "settings_changed";
+  | "settings_changed"
+  | "approval_recorded"
+  | "approval_rejected"
+  | "deletion_authorized"
+  | "authorization_revoked"
+  | "access_denied"
+  | "kill_switch_changed"
+  | "readiness_blocked"
+  | "notification_suppressed"
+  | "discovery_report";
 
 export type AuditResult = "success" | "failure" | "blocked" | "simulated" | "info";
 
@@ -411,4 +420,77 @@ export interface InfrastructureSettings {
     notificationsEnabled: boolean;
     policyEditing: "prototype" | "disabled_until_auth";
   };
+}
+
+/* ------------------------------------------------------------------ */
+/* Phase 3C — session and deletion review                              */
+/* ------------------------------------------------------------------ */
+
+export type UserRole = "VIEWER" | "OPERATOR" | "APPROVER" | "ADMIN";
+
+export interface SessionInfo {
+  /** "mock" = prototype data; "disabled" = AUTHENTICATION NOT CONFIGURED; "jwt-hs256" = token-verified sessions. */
+  authMode: "mock" | "disabled" | "jwt-hs256";
+  authenticated: boolean;
+  subject: string | null;
+  email: string | null;
+  roles: UserRole[];
+  permissions: string[];
+  notice: string | null;
+  productionDeletion: "DISABLED";
+}
+
+export interface ReviewEvidence {
+  attempt: number;
+  manifestSha256: string | null;
+  schemaHash: string | null;
+  graphHash: string | null;
+  candidateDigest: string | null;
+}
+
+export interface ReviewApproval {
+  id: number;
+  operator: string;
+  decision: "approve" | "reject";
+  comment: string | null;
+  decidedAt: ISODateTime;
+  expiresAt: ISODateTime | null;
+  revokedAt: ISODateTime | null;
+  counts: boolean;
+  notCountingReason: string | null;
+}
+
+export interface ReviewAuthorization {
+  id: number;
+  operator: string;
+  authorizedAt: ISODateTime;
+  expiresAt: ISODateTime;
+  revokedAt: ISODateTime | null;
+  consumedAt: ISODateTime | null;
+}
+
+export interface DeletionReviewData {
+  jobId: string;
+  applicationId: ApplicationId;
+  applicationName: string;
+  environment: string;
+  mode: string;
+  status: string;
+  tables: string[];
+  candidateCount: number;
+  rowsByTable: Record<string, number>;
+  oldestDay: ISODate | null;
+  boundaryDay: ISODate | null;
+  evidence: ReviewEvidence;
+  archiveLocation: string | null;
+  archiveDataBytes: number;
+  verification: { verified: boolean; verifiedAt: ISODateTime; failedStage: string | null; keySetPassed: boolean; restoreFingerprintPassed: boolean; schemaHashPassed: boolean } | null;
+  candidateSetIntact: boolean;
+  impact: { table: string; rowsToDelete: number; tableRows: number | null; pctOfTable: number | null; tableBytes: number | null; estReusableBytes: number | null }[];
+  approvals: ReviewApproval[];
+  authorizations: ReviewAuthorization[];
+  policy: { requiredApprovers: number | null; approvalValidityMinutes: number | null; authorizationValidityMinutes: number | null; deletionWindow: string | null; gaps: string[] };
+  /** Always "DISABLED" in Phase 3C: no approval or authorization can make the dashboard delete. */
+  productionDeletion: "DISABLED";
+  blockers: string[];
 }

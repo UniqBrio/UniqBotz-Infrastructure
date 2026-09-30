@@ -190,3 +190,39 @@ export async function auditActions(cp: pg.Client, jobId?: string): Promise<{ act
 }
 
 export type { ApplicationEnvironment };
+
+/* ------------------------------------------------------------------ Phase 3C: synthetic approval chain */
+
+/** TEST-ONLY approval-policy values on the throwaway control plane. These are NOT proposed production values. */
+export async function configureTestApprovalPolicy(cp: pg.Client, opts: { approvers?: number; windowOpen?: boolean } = {}) {
+  const now = new Date();
+  const hhmm = (d: Date) => d.toISOString().slice(11, 16);
+  const start = opts.windowOpen === false ? new Date(now.getTime() + 3 * 3600_000) : new Date(now.getTime() - 3600_000);
+  const end = opts.windowOpen === false ? new Date(now.getTime() + 4 * 3600_000) : new Date(now.getTime() + 3600_000);
+  await cp.query(
+    `UPDATE control.system_settings SET approval_required_approvers = $1, approval_validity_minutes = 60, approval_excludes_job_creator = true,
+       authorization_validity_minutes = 30, deletion_window_start = $2, deletion_window_end = $3, deletion_window_time_zone = 'UTC'`,
+    [opts.approvers ?? 2, hhmm(start), hhmm(end)]);
+}
+
+/** Synthetic operators: two approvers, one admin, one operator, one viewer. */
+export async function createTestOperators(cp: pg.Client) {
+  const { upsertOperator, grantRole } = await import("../../controlplane/operators");
+  const ops: [string, "APPROVER" | "ADMIN" | "OPERATOR" | "VIEWER"][] = [
+    ["approver-a", "APPROVER"], ["approver-b", "APPROVER"], ["admin-c", "ADMIN"], ["operator-d", "OPERATOR"], ["viewer-e", "VIEWER"],
+  ];
+  for (const [id, role] of ops) {
+    await upsertOperator(cp, { id, email: `${id}@synthetic.invalid` }, "test");
+    await grantRole(cp, id, role, "test");
+  }
+}
+
+/** Record two approvals and an ADMIN authorization for a verified ARCHIVE_VERIFY_DELETE job (synthetic only). */
+export async function approveAndAuthorize(cp: pg.Client, jobId: string) {
+  const { loadDeletionEvidence, evidenceKey, recordApprovalDecision, authorizeDeletion } = await import("../../approvals/approvals");
+  const ev = await loadDeletionEvidence(cp, jobId);
+  const ack = evidenceKey(ev!);
+  await recordApprovalDecision(cp, { jobId, operatorId: "approver-a", decision: "approve", evidenceAck: ack });
+  await recordApprovalDecision(cp, { jobId, operatorId: "approver-b", decision: "approve", evidenceAck: ack });
+  await authorizeDeletion(cp, { jobId, operatorId: "admin-c", evidenceAck: ack, confirmJobId: jobId });
+}

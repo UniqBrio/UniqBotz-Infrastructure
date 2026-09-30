@@ -8,7 +8,7 @@ import { from as copyFrom } from "pg-copy-streams";
 import { qi } from "../connection/connect";
 import type { ArchiveFormat } from "../archive/format";
 import type { ArchiveManifest } from "../archive/manifest";
-import type { ArchiveStore } from "../archive/store";
+import type { ArchiveStorage } from "../archive/storage";
 import type { TableSchema } from "../schema/describe";
 import { fingerprintSql } from "../schema/fingerprint";
 
@@ -51,7 +51,7 @@ export interface GateResult {
 }
 
 export interface GateInputs {
-  store: ArchiveStore;
+  store: ArchiveStorage;
   format: ArchiveFormat;
   expected: ExpectedArchive;
   /** Schema hash recomputed from the LIVE source right now (drift since freeze fails the gate). */
@@ -97,13 +97,13 @@ export async function runVerificationGate(inp: GateInputs): Promise<GateResult> 
 
   // 1. ARCHIVE CREATED — every object exists with the recorded size; manifest belongs to this job/attempt
   const keys = [exp.manifestKey, ...Object.keys(exp.files)];
-  const heads = await Promise.all(keys.map(async (k) => [k, await inp.store.head(k)] as const));
+  const heads = await Promise.all(keys.map(async (k) => [k, await inp.store.metadata(k)] as const));
   const missing = heads.filter(([, h]) => !h).map(([k]) => k);
   add("archive_created", "all objects exist", missing.length === 0, missing.length ? `missing: ${missing.join(", ")}` : `${keys.length} objects`);
   if (missing.length) return finish();
   const sizeBad = Object.entries(exp.files).filter(([k, f]) => heads.find(([hk]) => hk === k)![1]!.bytes !== f.bytes).map(([k]) => k);
   add("archive_created", "object sizes = control-plane record", sizeBad.length === 0, sizeBad.join(", ") || "ok");
-  const manifestBuf = await readAll(inp.store.get(exp.manifestKey));
+  const manifestBuf = await readAll(inp.store.read(exp.manifestKey));
   let manifest: ArchiveManifest;
   try { manifest = JSON.parse(manifestBuf.toString("utf8")); } catch (e) { add("archive_created", "manifest parses", false, String(e)); return finish(); }
   add("archive_created", "manifest identifies this job, attempt and application",
@@ -117,7 +117,7 @@ export async function runVerificationGate(inp: GateInputs): Promise<GateResult> 
   const mSha = createHash("sha256").update(manifestBuf).digest("hex");
   add("archive_integrity", "manifest sha256 = control-plane record", mSha === exp.manifestSha256, mSha.slice(0, 16));
   const buffers = new Map<string, Buffer>();
-  for (const k of Object.keys(exp.files)) buffers.set(k, await readAll(inp.store.get(k)));
+  for (const k of Object.keys(exp.files)) buffers.set(k, await readAll(inp.store.read(k)));
   const shaBad = Object.entries(exp.files).filter(([k, f]) => createHash("sha256").update(buffers.get(k)!).digest("hex") !== f.sha256).map(([k]) => k);
   add("archive_integrity", "object sha256 = control-plane record", shaBad.length === 0, shaBad.join(", ") || "ok");
   if (checks.some((c) => !c.pass)) return finish();

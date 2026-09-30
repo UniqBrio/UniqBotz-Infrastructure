@@ -1674,3 +1674,17 @@ Phase 3B implemented Option 2 (central external worker plus a separate control p
 - only `synthetic` environments allow-listed.
 
 Scheduling and notifications are constrained off. Hosted-Supabase validation is still outstanding. Details, and the ordered prerequisites before any production deletion, are in `PHASE_3B_IMPLEMENTATION_RECORD.md`.
+
+## Phase 3C Production-Readiness Status
+
+Phase 3C added:
+
+- the authentication/authorization boundary (§16.4 roles implemented);
+- the evidence-bound approval + authorization chain, re-validated by the worker;
+- secret kinds and fail-closed resolution (§16.3);
+- a provider-neutral archive storage interface (§8; no provider chosen);
+- disabled scheduling/notification interfaces;
+- structured logging;
+- read-only discovery tooling.
+
+Production deletion, scheduling and notifications remain disabled. The open decisions of §21.2 are tracked in `PRODUCTION_DECISION_CHECKLIST.md`; the remaining gaps are in `PHASE_3C_PRODUCTION_READINESS_GAP_REPORT.md`.

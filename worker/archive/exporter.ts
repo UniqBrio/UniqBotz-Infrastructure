@@ -12,7 +12,7 @@ import type { GroupPlan } from "../retention/group";
 import { FINGERPRINT_ALGORITHM, fingerprintSql } from "../schema/fingerprint";
 import type { ArchiveFormat } from "./format";
 import { MANIFEST_FORMAT_VERSION, type ArchiveManifest, type ManifestFile } from "./manifest";
-import type { ArchiveStore } from "./store";
+import type { ArchiveStorage } from "./storage";
 
 export interface CandidateKey {
   pk: string;
@@ -23,7 +23,7 @@ export interface CandidateKey {
 export interface ExportContext {
   jobId: string;
   attempt: number;
-  store: ArchiveStore;
+  store: ArchiveStorage;
   format: ArchiveFormat;
   softwareVersion: string;
   /** Receives the exact frozen keys in chunks (persisted as archive_job_candidates). */
@@ -69,7 +69,7 @@ function tap(onDone: (hex: string) => void) {
  */
 export async function freezeAndExport(c: pg.Client, plan: GroupPlan, preview: SelectionResult | null, ctx: ExportContext): Promise<ExportResult> {
   const prefix = attemptPrefix(plan.spec.applicationId, ctx.jobId, ctx.attempt);
-  await ctx.store.removePrefix(prefix);
+  await ctx.store.discardSupersededAttempt(prefix);
   const startedAt = new Date().toISOString();
   const t0 = process.hrtime.bigint();
   const tables: ArchiveManifest["tables"] = {};
@@ -97,7 +97,7 @@ export async function freezeAndExport(c: pg.Client, plan: GroupPlan, preview: Se
           createGzip({ level: 6 }),
           dataStream,
         ),
-        ctx.store.put(`${prefix}/data/${base}${ctx.format.extension}`, dataStream),
+        ctx.store.upload(`${prefix}/data/${base}${ctx.format.extension}`, dataStream),
       ]);
 
       // keys (exact delete identity): pk, fingerprint[, parent key] — gzip to the store AND chunk to the control plane
@@ -107,7 +107,7 @@ export async function freezeAndExport(c: pg.Client, plan: GroupPlan, preview: Se
       const parser = parse({ from_line: 2 });
       tee.pipe(createGzip({ level: 6 })).pipe(keyStream);
       tee.pipe(parser);
-      const keysPut = ctx.store.put(`${prefix}/keys/${base}.keys.csv.gz`, keyStream);
+      const keysPut = ctx.store.upload(`${prefix}/keys/${base}.keys.csv.gz`, keyStream);
       const parentCol = link ? `, t.${qi(link.childColumns[0]!)}::text AS parent_key` : "";
       const keysCopy = pipeline(
         c.query(copyTo(`COPY (SELECT t.${qi(pk)}::text AS pk, ${fingerprintSql("t")} AS fp${parentCol} FROM ${qi(table)} t WHERE ${pred} ORDER BY t.${qi(pk)}) TO STDOUT WITH (FORMAT csv, HEADER)`)),
@@ -173,9 +173,9 @@ export async function freezeAndExport(c: pg.Client, plan: GroupPlan, preview: Se
     deleteOrder: plan.deleteOrder,
     snapshot: { isolation: "REPEATABLE READ READ ONLY", exportMs, startedAt },
   };
-  const schemaObject = await ctx.store.put(`${prefix}/schema.json`, PassThrough.from([Buffer.from(JSON.stringify(plan.schemas, null, 2))]));
+  const schemaObject = await ctx.store.upload(`${prefix}/schema.json`, PassThrough.from([Buffer.from(JSON.stringify(plan.schemas, null, 2))]));
   const text = JSON.stringify(manifest, null, 2);
   const manifestKey = `${prefix}/manifest.json`;
-  const stored = await ctx.store.put(manifestKey, PassThrough.from([Buffer.from(text)]));
+  const stored = await ctx.store.upload(manifestKey, PassThrough.from([Buffer.from(text)]));
   return { schemaObject, manifest, manifestKey, manifestSha256: stored.sha256, manifestBytes: stored.bytes, selection, prefix };
 }

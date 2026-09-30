@@ -82,6 +82,15 @@ export const AUDIT_ACTION_LABEL: Record<AuditAction, string> = {
   job_failed: "Job Failed",
   alert_sent: "Alert Sent",
   settings_changed: "Settings Changed",
+  approval_recorded: "Deletion Approval Recorded",
+  approval_rejected: "Deletion Rejected by Approver",
+  deletion_authorized: "Deletion Authorized (worker re-validates)",
+  authorization_revoked: "Authorization Revoked",
+  access_denied: "Access Denied",
+  kill_switch_changed: "Kill Switch Changed",
+  readiness_blocked: "Blocked — Configuration Missing",
+  notification_suppressed: "Notification Suppressed (disabled)",
+  discovery_report: "Read-only Discovery Report",
 };
 
 export const AUDIT_RESULT_LABEL: Record<AuditResult, string> = {

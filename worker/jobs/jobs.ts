@@ -1,6 +1,7 @@
 import type pg from "pg";
 import { audit } from "../audit/audit";
 import { listPolicies, loadApplication, loadSettings } from "../controlplane/repository";
+import { NotReadyError, type BlockerCode } from "../readiness/blockers";
 import { eligibilityCutoffDay, localToday, type GroupSpec } from "../retention/group";
 import type { JobMode } from "./states";
 
@@ -10,10 +11,12 @@ export class DuplicateJobError extends Error {
     this.name = "DuplicateJobError";
   }
 }
-export class PolicyNotReadyError extends Error {
-  constructor(why: string) {
-    super(`cannot create job: ${why}`);
+/** Job creation refused because required configuration is missing (fail-safe; never defaulted). */
+export class PolicyNotReadyError extends NotReadyError {
+  constructor(codes: BlockerCode | BlockerCode[], detail?: string) {
+    super(codes, detail);
     this.name = "PolicyNotReadyError";
+    this.message = `cannot create job: ${this.message}`;
   }
 }
 
@@ -29,17 +32,23 @@ export interface CreateJobInput {
 /** Build the job spec from the stored, enabled ARCHIVE policies of a group. Never from ad-hoc input. */
 export async function createJob(cp: pg.Client, input: CreateJobInput): Promise<GroupSpec> {
   const app = await loadApplication(cp, input.applicationId);
-  if (!app.enabled || !app.capabilities.archive || !app.connections.archive) throw new PolicyNotReadyError("application has no archive capability/connection");
+  if (!app.enabled || !app.capabilities.archive || !app.connections.archive) throw new PolicyNotReadyError("ARCHIVE_EXECUTION_UNAVAILABLE", "application has no archive capability/connection");
   const settings = await loadSettings(cp);
   const policies = await listPolicies(cp, input.applicationId);
   const root = policies.find((p) => `${p.schemaName}.${p.tableName}` === input.groupRoot);
-  if (!root || root.policy !== "ARCHIVE" || !root.enabled) throw new PolicyNotReadyError(`${input.groupRoot} is not an enabled ARCHIVE policy`);
+  if (!root || root.policy !== "ARCHIVE" || !root.enabled) throw new PolicyNotReadyError("RETENTION_POLICY_NOT_CONFIGURED", `${input.groupRoot} is not an enabled ARCHIVE policy`);
   const members = policies.filter((p) => p.groupRoot === input.groupRoot && `${p.schemaName}.${p.tableName}` !== input.groupRoot);
   const bad = members.filter((m) => m.policy !== "ARCHIVE" || !m.enabled);
-  if (bad.length) throw new PolicyNotReadyError(`group members not enabled for ARCHIVE: ${bad.map((b) => b.tableName).join(", ")}`);
+  if (bad.length) throw new PolicyNotReadyError("RETENTION_POLICY_NOT_CONFIGURED", `group members not enabled for ARCHIVE: ${bad.map((b) => b.tableName).join(", ")}`);
   const grace = root.gracePeriodDays ?? settings.defaultGracePeriodDays;
-  if (grace === null) throw new PolicyNotReadyError("grace period is not configured (no built-in default)");
   const tz = root.timeZone ?? app.timeZone;
+  const missing: BlockerCode[] = [];
+  if (!root.dateColumn) missing.push("RETENTION_DATE_COLUMN_NOT_CONFIGURED");
+  if (root.protectedPeriodMonths === null) missing.push("PROTECTED_PERIOD_NOT_CONFIGURED");
+  if (root.targetRecords === null) missing.push("TARGET_NOT_CONFIGURED");
+  if (grace === null) missing.push("GRACE_PERIOD_NOT_CONFIGURED");
+  if (!tz) missing.push("APPLICATION_TIMEZONE_NOT_CONFIGURED");
+  if (missing.length || grace === null || !tz) throw new PolicyNotReadyError(missing, input.groupRoot);
   const spec: GroupSpec = {
     applicationId: app.id,
     root: input.groupRoot,
@@ -66,18 +75,11 @@ export async function createJob(cp: pg.Client, input: CreateJobInput): Promise<G
   return spec;
 }
 
-/** Operator approval. Refused for ARCHIVE_AND_VERIFY_ONLY jobs and anything not ready_for_deletion. */
-export async function approveDeletion(cp: pg.Client, jobId: string, operator: string): Promise<void> {
-  const job = (await cp.query(`SELECT status, mode, application_id FROM control.archive_jobs WHERE id = $1`, [jobId])).rows[0];
-  if (!job) throw new Error(`unknown job ${jobId}`);
-  if (job.mode !== "ARCHIVE_VERIFY_DELETE" || job.status !== "ready_for_deletion") {
-    await audit(cp, { action: "deletion_blocked", result: "blocked", applicationId: job.application_id, jobId, actor: { type: "user", name: operator },
-      detail: { reason: job.mode !== "ARCHIVE_VERIFY_DELETE" ? "job mode ARCHIVE_AND_VERIFY_ONLY cannot be approved for deletion" : `status ${job.status}` } });
-    throw new Error(`job ${jobId} cannot be approved for deletion (mode ${job.mode}, status ${job.status})`);
-  }
-  await cp.query(`UPDATE control.archive_jobs SET status = 'deletion_approved', approved_by = $2, approved_at = now(), updated_at = now() WHERE id = $1`, [jobId, operator]);
-  await audit(cp, { action: "deletion_approved", result: "success", applicationId: job.application_id, jobId, actor: { type: "user", name: operator } });
-}
+/*
+ * Phase 3C: the single-step Phase 3B `approveDeletion` was removed. Deletion now requires the approval chain in
+ * ../approvals/approvals.ts (evidence-bound APPROVER decisions + quorum + explicit ADMIN authorization), which the
+ * worker re-validates at execution time.
+ */
 
 export async function cancelJob(cp: pg.Client, jobId: string, operator: string, reason: string) {
   const r = await cp.query(

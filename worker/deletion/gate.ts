@@ -17,6 +17,13 @@ export interface DeletionGateInput {
   jobGraphHash: string | null;
   liveGraphHash: string | null;
   candidateSetIntact: boolean;
+  /**
+   * Result of the human authorization chain, validated by the worker from the control plane:
+   * authenticated operators, their roles, valid (unexpired, evidence-bound) approvals meeting the configured
+   * quorum, an explicit unexpired authorization, and the deletion window. [] = satisfied.
+   * Omitted → treated as NOT AUTHORIZED.
+   */
+  authorizationReasons?: string[];
   now?: Date;
 }
 
@@ -37,6 +44,8 @@ export function evaluateDeletionGate(i: DeletionGateInput): { allowed: boolean; 
   if (!i.jobSchemaHash || i.liveSchemaHash !== i.jobSchemaHash) reasons.push("schema hash changed since freeze (or unknown)");
   if (!i.jobGraphHash || i.liveGraphHash !== i.jobGraphHash) reasons.push("FK graph changed since freeze (or unknown)");
   if (!i.candidateSetIntact) reasons.push("frozen candidate set failed its integrity check");
+  if (i.authorizationReasons === undefined) reasons.push("DELETION NOT AUTHORIZED: authorization chain was not evaluated");
+  else reasons.push(...i.authorizationReasons);
   return { allowed: reasons.length === 0, reasons };
 }
 

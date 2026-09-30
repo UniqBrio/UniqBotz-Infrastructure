@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { defaultPolicy, policyStatus, validatePolicy, type RetentionPolicyRecord } from "../../retention/policy";
 import { eligibilityCutoffDay, localToday } from "../../retention/group";
 
-const ctx = { columns: [{ name: "checked_in_at", type: "timestamp with time zone" }, { name: "note", type: "text" }], hasPrimaryKey: true, defaultGracePeriodDays: null };
+const ctx = { columns: [{ name: "checked_in_at", type: "timestamp with time zone" }, { name: "note", type: "text" }], hasPrimaryKey: true, defaultGracePeriodDays: null, applicationTimeZone: "Asia/Kolkata" as string | null };
 const archive = (patch: Partial<RetentionPolicyRecord> = {}): RetentionPolicyRecord => ({
   ...defaultPolicy("app", "public", "attendance", "2026-09-30T00:00:00Z"),
   policy: "ARCHIVE", dateColumn: "checked_in_at", protectedPeriodMonths: 6, targetRecords: 3000, gracePeriodDays: 7, ...patch,
@@ -25,8 +25,8 @@ describe("retention policy — newly discovered tables are REVIEW_REQUIRED", () 
     expect(validatePolicy(archive({ dateColumn: "nope" }), ctx).join()).toMatch(/does not exist/);
     expect(validatePolicy(archive(), { ...ctx, hasPrimaryKey: false }).join()).toMatch(/no primary key/);
     expect(validatePolicy(archive({ protectedPeriodMonths: 0 }), ctx).join()).toMatch(/protected period/);
-    expect(validatePolicy(archive({ targetRecords: null }), ctx).join()).toMatch(/target/);
-    expect(validatePolicy(archive({ gracePeriodDays: null }), ctx).join()).toMatch(/grace period is not configured/);
+    expect(validatePolicy(archive({ targetRecords: null }), ctx).join()).toMatch(/CANNOT RUN — ARCHIVE TARGET NOT CONFIGURED/);
+    expect(validatePolicy(archive({ gracePeriodDays: null }), ctx).join()).toMatch(/CANNOT RUN — GRACE PERIOD NOT CONFIGURED/);
     expect(validatePolicy(archive({ gracePeriodDays: null }), { ...ctx, defaultGracePeriodDays: 30 })).toEqual([]);
     expect(policyStatus(archive({ gracePeriodDays: null }), ctx)).toBe("incomplete");
   });

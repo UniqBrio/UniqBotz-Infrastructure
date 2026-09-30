@@ -22,7 +22,7 @@ const MB = 1024 * 1024;
 const NEW_TABLE_WINDOW_DAYS = 7;
 
 export interface AppRow {
-  id: string; name: string; supabase_project_ref: string | null; environment: string; time_zone: string;
+  id: string; name: string; supabase_project_ref: string | null; environment: string; time_zone: string | null;
   database_capacity_mb: number | null; connection_status: Application["connectionStatus"]; last_health_check_at: Date | string | null;
   database_bytes: string | number | null; created_at: Date | string; last_error: string | null;
 }
@@ -64,7 +64,7 @@ export function mapApplication(r: AppRow): Application {
   return {
     id: r.id,
     name: r.name,
-    description: `${r.environment === "synthetic" ? "Synthetic / local test application" : `Supabase project ${r.supabase_project_ref ?? "—"}`} · ${r.time_zone}`,
+    description: `${r.environment === "synthetic" ? "Synthetic / local test application" : `Supabase project ${r.supabase_project_ref ?? "—"}`} · ${r.time_zone ?? "TIME ZONE NOT CONFIGURED"}`,
     supabaseProjectRef: r.supabase_project_ref ?? "—",
     region: "—",
     databaseSizeMb: Math.round(((num(r.database_bytes) ?? 0) / MB) * 10) / 10,
@@ -205,7 +205,10 @@ export function mapJob(b: JobBundle): ArchiveJob {
   const deleted = b.batches.reduce((s, x) => s + (x.deleted ?? 0), 0);
   const done = b.batches.filter((x) => x.state === "done").length;
   const total = b.rootRows ? Math.ceil(b.rootRows / b.batchSize) : 0;
-  const deletionDisabled = j.mode === "ARCHIVE_AND_VERIFY_ONLY";
+  // Phase 3C: PRODUCTION DELETION DISABLED in every deployment the dashboard serves. Any job that has not already
+  // deleted (synthetic test runs only) is shown as blocked — never "allowed" or "awaiting review".
+  const alreadyDeleting = ["deleting", "verifying_deletion", "completed", "completed_with_exceptions"].includes(j.status) || b.batches.length > 0;
+  const deletionDisabled = !alreadyDeleting;
   const at = iso(j.updated_at);
   const step = (key: PipelineStep["key"], s: PipelineStepStatus, detail: string | null = null, error: string | null = null, recordCount: number | null = null): PipelineStep =>
     ({ key, status: s, at: s === "pending" ? null : at, recordCount, detail, error });
@@ -220,7 +223,8 @@ export function mapJob(b: JobBundle): ArchiveJob {
       v?.verified ? "All 6 gate stages passed (incl. full restore + fingerprint reconciliation)" : null,
       v && !v.verified ? `${v.failed_stage}: ${failedCheck?.name} — ${failedCheck?.detail}` : null),
     step("deletion", v && !v.verified ? "blocked" : deletionDisabled && v?.verified ? "blocked" : j.status === "deleting" ? "running" : ["completed", "completed_with_exceptions"].includes(j.status) ? "passed" : j.status === "ready_for_deletion" || j.status === "deletion_approved" ? "awaiting_review" : "pending",
-      deletionDisabled ? "ARCHIVE_AND_VERIFY_ONLY job — deletion is disabled (ALLOW_DELETION=false)" : null, null, deleted || null),
+      deletionDisabled ? (j.mode === "ARCHIVE_AND_VERIFY_ONLY" ? "ARCHIVE_AND_VERIFY_ONLY job — deletion is disabled (ALLOW_DELETION=false)"
+        : "PRODUCTION DELETION DISABLED — approvals/authorization are recorded only; the worker refuses (ALLOW_DELETION=false)") : null, null, deleted || null),
     step("deletion_verified", ["completed", "completed_with_exceptions"].includes(j.status) ? "passed" : "pending"),
     step("completed", ["completed", "completed_with_exceptions"].includes(j.status) ? "passed" : j.status === "failed" ? "failed" : "pending"),
   ];

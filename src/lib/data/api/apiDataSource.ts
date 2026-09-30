@@ -1,6 +1,6 @@
 import type {
   Alert, Application, ApplicationHealth, ApplicationId, ArchiveCandidate, ArchiveJob, AuditEntry,
-  InfrastructureSettings, RetentionPolicy, RetentionPolicyInput, TableHealth,
+  DeletionReviewData, InfrastructureSettings, RetentionPolicy, RetentionPolicyInput, ReviewEvidence, SessionInfo, TableHealth,
 } from "@/lib/domain/types";
 import { DataSourceError, type DeletionSimulationResult, type InfrastructureDataSource } from "../source";
 
@@ -10,7 +10,11 @@ import { DataSourceError, type DeletionSimulationResult, type InfrastructureData
  */
 export class ApiDataSource implements InfrastructureDataSource {
   readonly mode = "live" as const;
-  constructor(private base = "/api/infra") {}
+  /**
+   * getToken supplies the identity provider's session token for WRITES (sent as a Bearer header, which is what
+   * makes writes CSRF-safe). The provider is undecided (checklist S-1); without it every write is refused.
+   */
+  constructor(private base = "/api/infra", private getToken: () => Promise<string | null> = async () => null) {}
 
   private async get<T>(path: string, app?: ApplicationId): Promise<T> {
     const url = `${this.base}/${path}${app ? `?app=${encodeURIComponent(app)}` : ""}`;
@@ -38,6 +42,17 @@ export class ApiDataSource implements InfrastructureDataSource {
   listAlerts(app?: ApplicationId) { return this.get<Alert[]>("alerts", app); }
   listAuditLog(app?: ApplicationId) { return this.get<AuditEntry[]>("audit", app); }
   getSettings() { return this.get<InfrastructureSettings>("settings"); }
+  getSession() { return this.get<SessionInfo>("session"); }
+  getDeletionReview(jobId: string) { return this.get<DeletionReviewData | null>(`jobs/${encodeURIComponent(jobId)}/review`); }
+  async submitApprovalDecision(jobId: string, decision: "approve" | "reject", evidenceAck: ReviewEvidence, comment?: string): Promise<void> {
+    const token = await this.getToken();
+    const r = await fetch(`${this.base}/jobs/${encodeURIComponent(jobId)}/approvals`, {
+      method: "POST",
+      headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify({ decision, evidenceAck, comment }),
+    });
+    if (!r.ok) throw new DataSourceError(((await r.json().catch(() => ({}))) as { error?: string }).error ?? `request failed (${r.status})`);
+  }
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- read-only: the input is intentionally ignored
   updateSettings(_s: InfrastructureSettings): Promise<InfrastructureSettings> { return this.refuse("settings"); }
 }

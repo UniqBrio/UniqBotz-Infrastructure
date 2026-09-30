@@ -8,6 +8,7 @@ import { listPolicies, loadApplication, loadSettings } from "../controlplane/rep
 import { previewCandidate } from "../candidates/preview";
 import { eligibilityCutoffDay, localToday, planGroup } from "../retention/group";
 import { validatePolicy, type RetentionPolicyRecord } from "../retention/policy";
+import { BLOCKERS } from "../readiness/blockers";
 import { measureGrowth, type GrowthResult } from "./growth";
 
 /**
@@ -45,7 +46,9 @@ export async function collectApplication(cp: pg.Client, secrets: SecretResolver,
   try {
     c = await openConnection(conn, secrets, { applicationName: "uniqbotz-monitor" });
     const disc = await discoverDatabase(c);
-    const today = localToday(app.timeZone, opts.now);
+    // Without a configured business time zone, snapshot days fall back to UTC calendar days (labelled as such);
+    // growth and previews REFUSE to run (APPLICATION TIMEZONE NOT CONFIGURED) — no zone is guessed.
+    const today = localToday(app.timeZone ?? "UTC", opts.now);
     const newTables = await persistDiscovery(cp, applicationId, disc);
 
     const t = settings.recordThresholds;
@@ -61,7 +64,9 @@ export async function collectApplication(cp: pg.Client, secrets: SecretResolver,
       }
       let growth: GrowthResult;
       try {
-        growth = rlsBlind
+        growth = !app.timeZone
+          ? { status: "insufficient_history", reason: BLOCKERS.APPLICATION_TIMEZONE_NOT_CONFIGURED, column: tbl.insertionColumn, timeZone: null, computedAt: new Date().toISOString() }
+          : rlsBlind
           ? { status: "insufficient_history", reason: "row-level security hides rows from the monitor role — counts are planner estimates", column: tbl.insertionColumn, timeZone: app.timeZone, computedAt: new Date().toISOString() }
           : await measureGrowth(c, tbl.qualified, tbl.insertionColumn, app.timeZone, today);
       } catch (e) {
@@ -97,7 +102,7 @@ export async function collectApplication(cp: pg.Client, secrets: SecretResolver,
     const kind = classifyError(e);
     await cp.query(
       `UPDATE control.applications SET connection_status = $2, last_error = $3, updated_at = now() WHERE id = $1`,
-      [applicationId, kind === "transient" || kind === "auth" ? "disconnected" : "degraded", String((e as Error).message).slice(0, 500)]);
+      [applicationId, kind === "configuration" ? "not_configured" : kind === "transient" || kind === "auth" ? "disconnected" : "degraded", String((e as Error).message).slice(0, 500)]);
     await audit(cp, { action: "collection_failed", result: "failure", applicationId, detail: { kind, message: String((e as Error).message) } });
     return { applicationId, ok: false, error: `${kind}: ${(e as Error).message}`, tables: 0, newTables: [], previews: [] };
   } finally {
@@ -188,7 +193,7 @@ async function evaluateCapacityAlert(cp: pg.Client, applicationId: string, bytes
   await upsertAlert(cp, applicationId, "database_capacity", null, null, level, Math.round(bytes / 1048576), Math.round((capacityMb * thrPct) / 100), null);
 }
 
-async function refreshPreviews(cp: pg.Client, c: pg.Client, applicationId: string, appTz: string, today: string, defaultGrace: number | null, disc: DiscoveryResult) {
+async function refreshPreviews(cp: pg.Client, c: pg.Client, applicationId: string, appTz: string | null, today: string, defaultGrace: number | null, disc: DiscoveryResult) {
   const policies = await listPolicies(cp, applicationId);
   const roots = policies.filter((p) => p.policy === "ARCHIVE" && p.enabled && (p.groupRoot === null || p.groupRoot === `${p.schemaName}.${p.tableName}`));
   const out: { root: string; status: string }[] = [];
@@ -196,7 +201,7 @@ async function refreshPreviews(cp: pg.Client, c: pg.Client, applicationId: strin
     const rootQ = `${root.schemaName}.${root.tableName}`;
     const members = policies.filter((p) => p.groupRoot === rootQ && `${p.schemaName}.${p.tableName}` !== rootQ);
     const tbl = disc.tables.find((t) => t.qualified === rootQ);
-    const errors = tbl ? validatePolicy(root, { columns: tbl.columns, hasPrimaryKey: tbl.primaryKey.length > 0, defaultGracePeriodDays: defaultGrace }) : ["table no longer present"];
+    const errors = tbl ? validatePolicy(root, { columns: tbl.columns, hasPrimaryKey: tbl.primaryKey.length > 0, defaultGracePeriodDays: defaultGrace, applicationTimeZone: appTz }) : ["table no longer present"];
     const nonArchiveMember = members.filter((m) => m.policy !== "ARCHIVE" || !m.enabled).map((m) => `${m.schemaName}.${m.tableName}: group member is not an enabled ARCHIVE policy`);
     let preview;
     if (errors.length || nonArchiveMember.length) {
@@ -212,7 +217,7 @@ async function refreshPreviews(cp: pg.Client, c: pg.Client, applicationId: strin
       const grace = root.gracePeriodDays ?? defaultGrace!;
       const plan = await planGroup(c, {
         applicationId, root: rootQ, dateColumn: root.dateColumn!, tables: [rootQ, ...members.map((m) => `${m.schemaName}.${m.tableName}`)],
-        timeZone: root.timeZone ?? appTz, cutoffDay: eligibilityCutoffDay(today, root.protectedPeriodMonths!, grace), target: root.targetRecords!,
+        timeZone: (root.timeZone ?? appTz)!, cutoffDay: eligibilityCutoffDay(today, root.protectedPeriodMonths!, grace), target: root.targetRecords!,
       });
       preview = await previewCandidate(c, plan);
     }

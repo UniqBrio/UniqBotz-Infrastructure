@@ -28,7 +28,17 @@ export type AuditAction =
   | "job_failed"
   | "job_requires_review"
   | "lease_takeover"
-  | "operator_action";
+  | "operator_action"
+  // Phase 3C
+  | "approval_recorded"
+  | "approval_rejected"
+  | "deletion_authorized"
+  | "authorization_revoked"
+  | "access_denied"
+  | "kill_switch_changed"
+  | "readiness_blocked"
+  | "notification_suppressed"
+  | "discovery_report";
 
 export interface AuditEvent {
   action: AuditAction;
@@ -41,7 +51,7 @@ export interface AuditEvent {
 }
 
 /** Append-only (enforced by trigger in the control plane). */
-export async function audit(cp: pg.Client, e: AuditEvent): Promise<void> {
+export async function audit(cp: pg.Client | pg.PoolClient, e: AuditEvent): Promise<void> {
   await cp.query(
     `INSERT INTO control.audit_logs (application_id, job_id, action, table_name, actor_type, actor_name, result, detail)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,

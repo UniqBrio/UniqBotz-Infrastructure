@@ -83,7 +83,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
       <div className="border-t border-chrome-line px-4 py-3 text-[11px] leading-relaxed text-chrome-ink-2">
         Internal control plane · not exposed in RosiFit, UniqBrio or Jalsa.
-        <div className="mt-1 font-mono text-[10px]">{live ? "Phase 3B · live read-only" : "Phase 1 · UI prototype"}</div>
+        <div className="mt-1 font-mono text-[10px]">{live ? "Phase 3C · live read-only" : "Phase 1 · UI prototype"}</div>
       </div>
     </nav>
   );

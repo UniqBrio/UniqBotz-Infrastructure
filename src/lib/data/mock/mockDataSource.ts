@@ -3,7 +3,9 @@ import { isDeletionAllowed } from "@/lib/domain/jobs";
 import type {
   ApplicationId,
   AuditEntry,
+  DeletionReviewData,
   InfrastructureSettings,
+  SessionInfo,
   RetentionPolicy,
   RetentionPolicyInput,
   TableHealth,
@@ -217,6 +219,23 @@ export class MockDataSource implements InfrastructureDataSource {
 
   getSettings() {
     return this.read(() => this.settings);
+  }
+
+  getSession() {
+    return this.read<SessionInfo>(() => ({
+      authMode: "mock", authenticated: false, subject: null, email: null, roles: [], permissions: [],
+      notice: "Prototype data — no authentication", productionDeletion: "DISABLED",
+    }));
+  }
+
+  /** Mock jobs carry no archive evidence; the Phase 1 walkthrough is shown instead. */
+  getDeletionReview(jobId: string) {
+    void jobId;
+    return this.read<DeletionReviewData | null>(() => null);
+  }
+
+  submitApprovalDecision(): Promise<void> {
+    return Promise.reject(new DataSourceError("Mock mode: approvals are not recorded. Nothing is ever deleted."));
   }
 
   updateSettings(next: InfrastructureSettings) {

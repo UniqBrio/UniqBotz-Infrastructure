@@ -145,7 +145,7 @@ describe("candidate preview (read-only)", () => {
     await collectApplication(env.cp, secrets, APP_ID, { now: NOW });
     const row = (await env.cp.query(`SELECT status, preview FROM control.candidate_previews WHERE group_root = 'public.attendance'`)).rows[0];
     expect(row.status).toBe("blocked");
-    expect(row.preview.blocking.join()).toMatch(/grace period is not configured/);
+    expect(row.preview.blocking.join()).toMatch(/CANNOT RUN — GRACE PERIOD NOT CONFIGURED/);
     expect(row.preview).toMatchObject({ tables: ["public.attendance", "public.attendance_notes"], dateColumn: "checked_in_at", target: 3000, cutoffDay: null, days: [] });
     await enableAttendanceGroup(env.cp, { target: 3000 });
   });
@@ -175,7 +175,7 @@ describe("live data-source adapter (browser → /api/infra → read-only control
       const u = new URL(String(input), "http://localhost");
       const path = u.pathname.replace(/^\/api\/infra\//, "").split("/").map(decodeURIComponent);
       const res = init?.method && init.method !== "GET"
-        ? await route.POST()
+        ? await route.POST(new NextRequest(u, { method: init.method, body: init.body as BodyInit | undefined }), { params: Promise.resolve({ path }) } as never)
         : await route.GET(new NextRequest(u), { params: Promise.resolve({ path }) } as never);
       seen.push(await res.clone().text());
       return res;

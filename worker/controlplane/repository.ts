@@ -14,10 +14,20 @@ export interface SystemSettingsRow {
   whatsappDestination: string | null;
   notificationsEnabled: boolean;
   schedulingEnabled: boolean;
+  /** Approval-policy values. Every NULL is an undecided business rule → DELETION NOT AUTHORIZED. */
+  approvalPolicy: {
+    requiredApprovers: number | null;
+    approvalValidityMinutes: number | null;
+    excludesJobCreator: boolean | null;
+    authorizationValidityMinutes: number | null;
+    deletionWindow: { start: string; end: string; timeZone: string } | null;
+  };
+  killSwitchChangedBy: string | null;
+  killSwitchChangedAt: string | null;
   updatedAt: string;
 }
 
-export async function loadSettings(cp: pg.Client): Promise<SystemSettingsRow> {
+export async function loadSettings(cp: pg.Client | pg.PoolClient): Promise<SystemSettingsRow> {
   const r = (await cp.query(`SELECT * FROM control.system_settings WHERE id = 1`)).rows[0];
   return {
     recordThresholds: { low: Number(r.record_threshold_low), medium: Number(r.record_threshold_medium), high: Number(r.record_threshold_high) },
@@ -35,6 +45,16 @@ export async function loadSettings(cp: pg.Client): Promise<SystemSettingsRow> {
     whatsappDestination: r.whatsapp_destination,
     notificationsEnabled: r.notifications_enabled,
     schedulingEnabled: r.scheduling_enabled,
+    approvalPolicy: {
+      requiredApprovers: r.approval_required_approvers ?? null,
+      approvalValidityMinutes: r.approval_validity_minutes ?? null,
+      excludesJobCreator: r.approval_excludes_job_creator ?? null,
+      authorizationValidityMinutes: r.authorization_validity_minutes ?? null,
+      deletionWindow: r.deletion_window_start && r.deletion_window_end && r.deletion_window_time_zone
+        ? { start: String(r.deletion_window_start), end: String(r.deletion_window_end), timeZone: r.deletion_window_time_zone } : null,
+    },
+    killSwitchChangedBy: r.kill_switch_changed_by ?? null,
+    killSwitchChangedAt: r.kill_switch_changed_at ? new Date(r.kill_switch_changed_at).toISOString() : null,
     updatedAt: new Date(r.updated_at).toISOString(),
   };
 }

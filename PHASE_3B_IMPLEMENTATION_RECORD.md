@@ -1,5 +1,9 @@
 # Phase 3B — Implementation Record
 
+> **Phase 3C update:** the single-step `approveDeletion` described here was replaced by the evidence-bound approval +
+> authorization chain, and the local archive directory is now approved for synthetic applications only. See
+> `PHASE_3C_PRODUCTION_READINESS_GAP_REPORT.md` and `CONTROL_PLANE_SECURITY.md`.
+
 **Scope:** a control plane, **read-only** live monitoring, and a worker that can **archive and verify** but not delete.
 The deletion engine exists and is tested on synthetic local data only. It is **disabled** in every shipped configuration.
 

@@ -8,12 +8,12 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { collectApplication } from "../../health/collector";
 import { upsertPolicy } from "../../controlplane/repository";
-import { approveDeletion, cancelJob, createJob } from "../../jobs/jobs";
+import { cancelJob, createJob } from "../../jobs/jobs";
 import { loadCandidates } from "../../jobs/candidates";
 import { CrashSignal, type CrashPoint } from "../../jobs/faults";
 import { LeaseHeldError } from "../../recovery/lease";
 import { defaultPolicy } from "../../retention/policy";
-import { APP_ID, auditActions, count, createEnv, enableAttendanceGroup, NOW, runner, secrets, testConfig, type Env } from "./harness";
+import { APP_ID, approveAndAuthorize, auditActions, configureTestApprovalPolicy, count, createEnv, createTestOperators, enableAttendanceGroup, NOW, runner, secrets, testConfig, type Env } from "./harness";
 
 let env: Env;
 const DELETE_ON = testConfig({ allowDeletion: true, deletionAllowedEnvironments: ["synthetic"] });
@@ -26,14 +26,16 @@ beforeAll(async () => {
   env = await createEnv("p3b_delete");
   await collectApplication(env.cp, secrets, APP_ID, { now: NOW });
   await enableAttendanceGroup(env.cp, { target: 1000 });
+  await createTestOperators(env.cp);
+  await configureTestApprovalPolicy(env.cp);
 });
 afterAll(async () => { await env?.close(); });
 
-/** Create a job with mode ARCHIVE_VERIFY_DELETE, archive + verify it, and approve it. */
+/** Create a job with mode ARCHIVE_VERIFY_DELETE, archive + verify it, then two approvals + ADMIN authorization (synthetic). */
 async function approvedJob(id: string) {
-  await createJob(env.cp, { id, applicationId: APP_ID, groupRoot: "public.attendance", createdBy: "test", mode: "ARCHIVE_VERIFY_DELETE", now: NOW });
+  await createJob(env.cp, { id, applicationId: APP_ID, groupRoot: "public.attendance", createdBy: "operator-d", mode: "ARCHIVE_VERIFY_DELETE", now: NOW });
   expect((await runner(env).run(id)).status).toBe("ready_for_deletion");
-  await approveDeletion(env.cp, id, "test:operator");
+  await approveAndAuthorize(env.cp, id);
 }
 
 describe("deletion is refused by every independent safety layer", () => {
@@ -124,7 +126,7 @@ describe("deletion engine on synthetic data (test-only enablement)", () => {
     expect(tables["public.attendance_notes"]).toMatchObject({ deleted: keys["public.attendance_notes"]!.length, skipped: 0, reconciled: true });
 
     const actions = await auditActions(env.cp, "D-EXACT");
-    expect(actions.map((a) => a.action)).toEqual(expect.arrayContaining(["deletion_approved", "deletion_attempted", "deletion_batch_completed", "deletion_verified", "deletion_completed"]));
+    expect(actions.map((a) => a.action)).toEqual(expect.arrayContaining(["approval_recorded", "deletion_authorized", "deletion_attempted", "deletion_batch_completed", "deletion_verified", "deletion_completed"]));
     const verified = actions.find((a) => a.action === "deletion_verified")!.detail as { maintenance: Record<string, string> };
     expect(Object.values(verified.maintenance)).toEqual(["vacuum_analyze_ok", "vacuum_analyze_ok"]); // VACUUM (ANALYZE), never VACUUM FULL
   });

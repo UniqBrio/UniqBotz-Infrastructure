@@ -36,7 +36,7 @@ export type GrowthResult =
       countsSurvivingRowsOnly: true;
       computedAt: string;
     }
-  | { status: "insufficient_history"; reason: string; column: string | null; timeZone: string; computedAt: string };
+  | { status: "insufficient_history"; reason: string; column: string | null; timeZone: string | null; computedAt: string };
 
 export function growthWindow(todayLocal: string): { start: string; end: string; months: { month: string; days: number }[] } {
   const [y, m] = todayLocal.split("-").map(Number) as [number, number];

@@ -1,3 +1,5 @@
+import { BLOCKERS } from "../readiness/blockers";
+
 /**
  * Retention policy model (control-plane side). Newly discovered tables are ALWAYS REVIEW_REQUIRED and
  * can never be archived until an operator sets ARCHIVE, configures it fully, and enables it.
@@ -49,6 +51,8 @@ export interface PolicyContext {
   columns: { name: string; type: string }[];
   hasPrimaryKey: boolean;
   defaultGracePeriodDays: number | null;
+  /** The application's configured business time zone (null = not configured → cannot run). */
+  applicationTimeZone: string | null;
 }
 
 /** Returns validation errors; an ARCHIVE policy may only be enabled when this returns []. */
@@ -58,7 +62,7 @@ export function validatePolicy(p: RetentionPolicyRecord, ctx: PolicyContext): st
     if (p.enabled) errors.push("only ARCHIVE policies can be enabled");
     return errors;
   }
-  if (!p.dateColumn) errors.push("date column is required");
+  if (!p.dateColumn) errors.push(BLOCKERS.RETENTION_DATE_COLUMN_NOT_CONFIGURED);
   else {
     const col = ctx.columns.find((c) => c.name === p.dateColumn);
     if (!col) errors.push(`date column ${p.dateColumn} does not exist`);
@@ -66,10 +70,14 @@ export function validatePolicy(p: RetentionPolicyRecord, ctx: PolicyContext): st
       errors.push(`date column ${p.dateColumn} is ${col.type}, not a date/timestamp type`);
   }
   if (!ctx.hasPrimaryKey) errors.push("table has no primary key — exact candidate identity is impossible");
-  if (!Number.isInteger(p.protectedPeriodMonths) || (p.protectedPeriodMonths ?? 0) < 1) errors.push("protected period must be ≥ 1 month");
-  if (!Number.isInteger(p.targetRecords) || (p.targetRecords ?? 0) < 1) errors.push("target must be a positive integer");
+  if (p.protectedPeriodMonths === null) errors.push(BLOCKERS.PROTECTED_PERIOD_NOT_CONFIGURED);
+  else if (!Number.isInteger(p.protectedPeriodMonths) || p.protectedPeriodMonths < 1) errors.push("protected period must be ≥ 1 month");
+  if (p.targetRecords === null) errors.push(BLOCKERS.TARGET_NOT_CONFIGURED);
+  else if (!Number.isInteger(p.targetRecords) || p.targetRecords < 1) errors.push("target must be a positive integer");
   const grace = p.gracePeriodDays ?? ctx.defaultGracePeriodDays;
-  if (grace === null || !Number.isInteger(grace) || grace < 0) errors.push("grace period is not configured (no built-in default)");
+  if (grace === null) errors.push(`${BLOCKERS.GRACE_PERIOD_NOT_CONFIGURED} (no built-in default)`);
+  else if (!Number.isInteger(grace) || grace < 0) errors.push("grace period must be a whole number of days ≥ 0");
+  if (!(p.timeZone ?? ctx.applicationTimeZone)) errors.push(BLOCKERS.APPLICATION_TIMEZONE_NOT_CONFIGURED);
   if (!ARCHIVE_FORMATS.includes(p.archiveFormat)) errors.push(`archive format ${p.archiveFormat} is not supported`);
   return errors;
 }

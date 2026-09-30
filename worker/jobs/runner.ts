@@ -5,7 +5,9 @@ import { openConnection, qi } from "../connection/connect";
 import type { SecretResolver } from "../connection/secrets";
 import { formatById } from "../archive/format";
 import { freezeAndExport, TargetNotReachedError } from "../archive/exporter";
-import type { ArchiveStore } from "../archive/store";
+import { assertApprovedFor, type ArchiveStorage } from "../archive/storage";
+import { markAuthorizationConsumed, validateExecutionAuthorization } from "../approvals/approvals";
+import { silentLogger, type WorkerLogger } from "../observability/logger";
 import { selectCandidate } from "../candidates/selection";
 import { loadApplication, loadSettings } from "../controlplane/repository";
 import { buildBatches, deleteBatch, type TableOutcome } from "../deletion/batch";
@@ -21,8 +23,10 @@ import { DELETION_PHASE, TERMINAL_STATUSES, type JobMode, type JobStatus } from 
 export interface RunnerDeps {
   cp: pg.Client;
   secrets: SecretResolver;
-  store: ArchiveStore;
+  /** null → no archive provider configured → ARCHIVE EXECUTION UNAVAILABLE (fail-safe). */
+  store: ArchiveStorage | null;
   config: WorkerConfig;
+  logger?: WorkerLogger;
   openScratch: () => Promise<pg.Client>;
   /** TEST ONLY. */
   faults?: { at?: CrashPoint };
@@ -57,7 +61,16 @@ export interface RunOutcome {
 export class JobRunner {
   private src: pg.Client | null = null;
   private environment: "synthetic" | "staging" | "production" = "production";
-  constructor(private d: RunnerDeps) {}
+  private log: WorkerLogger;
+  constructor(private d: RunnerDeps) {
+    this.log = (d.logger ?? silentLogger).child({ worker: d.config.workerId });
+  }
+  /** The approved archive storage for this job's application environment, or ARCHIVE EXECUTION UNAVAILABLE. */
+  private async storage(job: JobRow): Promise<ArchiveStorage> {
+    const app = await loadApplication(this.d.cp, job.application_id);
+    this.environment = app.environment;
+    return assertApprovedFor(this.d.store, app.environment);
+  }
 
   private crash(p: CrashPoint) {
     if (this.d.faults?.at === p) throw new CrashSignal(p);
@@ -112,6 +125,7 @@ export class JobRunner {
           this.src = null;
           const decision = decideRetry(e, job.retry_count);
           const message = String((e as Error).message ?? e).slice(0, 500);
+          this.log.error("job_step_failed", { application: job.application_id, jobId: id, phase: job.status, retry: job.retry_count, errorKind: decision.kind, error: e });
           if (decision.retry) {
             await this.set(id, { status: "waiting_retry", resume_status: job.status, retry_count: job.retry_count + 1,
               next_retry_at: new Date(Date.now() + decision.delayMs).toISOString(), failure: { kind: decision.kind, message } });
@@ -120,7 +134,8 @@ export class JobRunner {
           }
           const next: JobStatus = DELETION_PHASE.includes(job.status) ? "requires_review" : "failed";
           await this.set(id, { status: next, failure: { kind: decision.kind, message, at: job.status }, finished_at: new Date().toISOString() });
-          await audit(this.d.cp, { action: next === "failed" ? "job_failed" : "job_requires_review", result: "failure", applicationId: job.application_id, jobId: id,
+          await audit(this.d.cp, { action: decision.kind === "configuration" ? "readiness_blocked" : next === "failed" ? "job_failed" : "job_requires_review",
+            result: decision.kind === "configuration" ? "blocked" : "failure", applicationId: job.application_id, jobId: id,
             detail: { kind: decision.kind, message, at: job.status, deleted: next === "failed" ? 0 : undefined } });
           return { status: next };
         }
@@ -144,6 +159,7 @@ export class JobRunner {
         return;
 
       case "preparing": {
+        await this.storage(job); // fail fast, before touching the application database
         const plan = await this.plan(job);
         if (plan.blocking.length) {
           await this.set(id, { status: "failed", failure: { reason: "preflight", blocking: plan.blocking, deleted: 0 }, finished_at: new Date().toISOString() });
@@ -166,7 +182,8 @@ export class JobRunner {
         const attempt = job.attempt + 1;
         await this.set(id, { attempt, status: "exporting" });
         await this.d.cp.query(`DELETE FROM control.archive_job_candidates WHERE job_id = $1 AND attempt < $2`, [id, attempt]);
-        for (let p = 1; p < attempt; p++) await this.d.store.removePrefix(`${job.application_id}/${id}/attempt-${p}`);
+        const store = await this.storage(job);
+        for (let p = 1; p < attempt; p++) await store.discardSupersededAttempt(`${job.application_id}/${id}/attempt-${p}`);
         const src = await this.source(job);
         if (this.d.hooks?.beforeFreeze) await this.d.hooks.beforeFreeze(src);
         const plan = await this.plan(job);
@@ -182,7 +199,7 @@ export class JobRunner {
           res = await freezeAndExport(src, plan, preview, {
             jobId: id,
             attempt,
-            store: this.d.store,
+            store,
             format: formatById("csv.gz"),
             softwareVersion: this.d.config.softwareVersion,
             chunkSize: 2_000,
@@ -206,7 +223,7 @@ export class JobRunner {
         await this.d.cp.query(
           `INSERT INTO control.archive_manifests (job_id, attempt, store_kind, store_uri, manifest_key, manifest_sha256, manifest, files)
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT (job_id, attempt) DO NOTHING`,
-          [id, attempt, this.d.store.kind, this.d.store.uri(res.prefix), res.manifestKey, res.manifestSha256, JSON.stringify(res.manifest), JSON.stringify(files)]);
+          [id, attempt, store.provider, store.uri(res.prefix), res.manifestKey, res.manifestSha256, JSON.stringify(res.manifest), JSON.stringify(files)]);
         for (const [t, mt] of Object.entries(res.manifest.tables)) {
           await this.d.cp.query(`UPDATE control.archive_job_tables SET candidate_rows = $3 WHERE job_id = $1 AND table_name = $2`, [id, t, mt.rows]);
         }
@@ -215,7 +232,8 @@ export class JobRunner {
           oldestDate: sel.oldestDate, boundaryDate: sel.boundaryDate, endDayExclusive: sel.endDayExclusive, totalSelected: sel.totalSelected,
           totalBeforeFinalDay: sel.totalBeforeFinalDay, finalDayCount: sel.finalDayCount, totalsByTable: sel.totalsByTable, previewBoundary: preview.boundaryDate } });
         await audit(this.d.cp, { ...a, action: "candidates_frozen", result: "success", detail: { attempt, rows: sel.totalSelected, boundary: sel.boundaryDate, totalsByTable: sel.totalsByTable, snapshot: "REPEATABLE READ READ ONLY" } });
-        await audit(this.d.cp, { ...a, action: "archive_created", result: "success", detail: { attempt, store: this.d.store.uri(res.prefix), manifestSha256: res.manifestSha256 } });
+        await audit(this.d.cp, { ...a, action: "archive_created", result: "success", detail: { attempt, store: store.uri(res.prefix), provider: store.provider, manifestSha256: res.manifestSha256 } });
+        this.log.info("archive_created", { application: job.application_id, jobId: id, phase: "exporting", attempt, rows: sel.totalSelected, archiveObject: res.manifestKey, checksum: res.manifestSha256 });
         this.crash("after_manifest_checkpoint");
         return;
       }
@@ -231,7 +249,7 @@ export class JobRunner {
           candidateKeyDigests: Object.fromEntries(Object.entries(manifest.tables).map(([t, x]) => [t, (x as { keys: { rawSha256: string } }).keys.rawSha256])),
           schemaHash: job.schema_hash!, boundary: { firstDay: manifest.boundary.firstDay, lastDay: manifest.boundary.lastDay },
         };
-        const g = await runVerificationGate({ store: this.d.store, format: formatById("csv.gz"), expected, currentSchemaHash: plan.schemaHash,
+        const g = await runVerificationGate({ store: await this.storage(job), format: formatById("csv.gz"), expected, currentSchemaHash: plan.schemaHash,
           controlPlaneCandidates: intact ? toMaps(keys) : {}, openScratch: this.d.openScratch, verifierVersion: this.d.config.softwareVersion });
         this.crash("during_verification");
         await this.d.cp.query(
@@ -255,13 +273,17 @@ export class JobRunner {
         const plan = await planGroup(src, job.spec);
         const v = (await this.d.cp.query(`SELECT verified, attempt, verified_at FROM control.archive_verifications WHERE job_id = $1 ORDER BY id DESC LIMIT 1`, [id])).rows[0];
         const { keys, intact } = await loadCandidates(this.d.cp, id, job.attempt);
+        // Human authorization chain (approvals quorum, explicit authorization, roles, expiry, window) — re-validated here.
+        const authorizationReasons = await validateExecutionAuthorization(this.d.cp, id, new Date(), { atStart: job.status === "deletion_approved" });
         const gate = evaluateDeletionGate({
           config: this.d.config, environment: this.environment, killSwitch: settings.deletionKillSwitch, jobStatus: job.status, jobMode: job.mode,
           verification: v ? { verified: v.verified, attempt: v.attempt, verifiedAt: new Date(v.verified_at).toISOString() } : null,
           currentAttempt: job.attempt, jobSchemaHash: job.schema_hash, liveSchemaHash: plan.schemaHash, jobGraphHash: job.graph_hash, liveGraphHash: plan.graphHash,
           candidateSetIntact: intact,
+          authorizationReasons,
         });
         if (!gate.allowed) {
+          this.log.warn("deletion_blocked", { application: job.application_id, jobId: id, phase: job.status, rows: 0, status: gate.reasons.slice(0, 3).join(" | ") });
           await audit(this.d.cp, { ...a, action: "deletion_blocked", result: "blocked", detail: { reasons: gate.reasons, deleted: 0 } });
           if (gate.reasons.some((r) => r.startsWith("schema hash") || r.startsWith("FK graph") || r.startsWith("frozen candidate"))) {
             await this.set(id, { status: "requires_review", failure: { reason: "drift_or_integrity", reasons: gate.reasons, deleted: 0 }, finished_at: new Date().toISOString() });
@@ -273,6 +295,7 @@ export class JobRunner {
         }
         if (job.status === "deletion_approved") {
           await audit(this.d.cp, { ...a, action: "deletion_attempted", result: "info", detail: { rows: Object.values(keys).reduce((s, k) => s + k.length, 0) } });
+          await markAuthorizationConsumed(this.d.cp, id, job.attempt);
           await this.set(id, { status: "deleting" });
         }
         this.crash("before_deletion");
@@ -289,6 +312,12 @@ export class JobRunner {
             await this.set(id, { status: "requires_review", failure: { reason: "kill_switch", atBatch: i } });
             return ["deletion kill switch is ON"];
           }
+          const stillAuthorized = await validateExecutionAuthorization(this.d.cp, id, new Date(), { atStart: false });
+          if (stillAuthorized.length) {
+            await audit(this.d.cp, { ...a, action: "deletion_blocked", result: "blocked", detail: { reason: "authorization revoked or invalid during deletion", reasons: stillAuthorized, atBatch: i } });
+            await this.set(id, { status: "requires_review", failure: { reason: "authorization_invalid_during_deletion", reasons: stillAuthorized, atBatch: i } });
+            return stillAuthorized;
+          }
           const live = await planGroup(src, job.spec);
           if (live.schemaHash !== job.schema_hash || live.graphHash !== job.graph_hash) {
             await audit(this.d.cp, { ...a, action: "deletion_blocked", result: "blocked", detail: { reason: "schema drift during deletion", atBatch: i } });
@@ -296,6 +325,7 @@ export class JobRunner {
             return ["schema hash changed during deletion"];
           }
           const requested = Object.values(batches[i]!).reduce((s, r) => s + r.length, 0);
+          const t0 = Date.now();
           await this.d.cp.query(
             `INSERT INTO control.archive_deletion_batches (job_id, batch_no, state, requested) VALUES ($1,$2,'started',$3)
              ON CONFLICT (job_id, batch_no) DO UPDATE SET attempts = control.archive_deletion_batches.attempts + 1, started_at = clock_timestamp()`,
@@ -317,6 +347,7 @@ export class JobRunner {
             [id, i, sum("deleted"), sum("drifted") + sum("held"), sum("missing"), JSON.stringify(out)]);
           await audit(this.d.cp, { ...a, action: "deletion_batch_completed", result: "success",
             detail: { batch: i, of: batches.length, deleted: sum("deleted"), skipped: sum("drifted") + sum("held"), missing: sum("missing") } });
+          this.log.info("deletion_batch_completed", { application: job.application_id, jobId: id, phase: "deleting", batch: i, rows: sum("deleted"), durationMs: Date.now() - t0 });
           if (this.d.hooks?.afterDeletionBatch) await this.d.hooks.afterDeletionBatch(i);
         }
         this.crash("after_deletion");
