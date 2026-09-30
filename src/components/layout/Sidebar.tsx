@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Server } from "lucide-react";
 import { useAlerts, useArchiveJobs, useRetentionPolicies } from "@/lib/data/hooks";
+import { useIsLive } from "@/lib/data/DataProvider";
 import { useScopedAppId } from "@/lib/data/scope";
 import { isActiveJob } from "@/lib/domain/jobs";
 import { cn } from "@/lib/cn";
@@ -22,6 +23,7 @@ function useNavBadges(): Record<NonNullable<NavItem["badge"]>, number | undefine
 }
 
 export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
+  const live = useIsLive();
   const pathname = usePathname();
   const badges = useNavBadges();
 
@@ -81,7 +83,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
       <div className="border-t border-chrome-line px-4 py-3 text-[11px] leading-relaxed text-chrome-ink-2">
         Internal control plane · not exposed in RosiFit, UniqBrio or Jalsa.
-        <div className="mt-1 font-mono text-[10px]">Phase 1 · UI prototype</div>
+        <div className="mt-1 font-mono text-[10px]">{live ? "Phase 3B · live read-only" : "Phase 1 · UI prototype"}</div>
       </div>
     </nav>
   );

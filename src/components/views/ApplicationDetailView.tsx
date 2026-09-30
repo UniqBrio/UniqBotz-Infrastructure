@@ -16,7 +16,7 @@ import {
 } from "@/lib/data/hooks";
 import { setAppScope, useAppScope } from "@/lib/data/scope";
 import { POLICY_LABEL } from "@/lib/domain/labels";
-import { formatDateTime, formatInt, formatRelative } from "@/lib/domain/format";
+import { formatAppGrowth, formatDateTime, formatRelative } from "@/lib/domain/format";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DataState } from "@/components/ui/DataState";
@@ -117,7 +117,7 @@ export function ApplicationDetailView({ appId, initialTable }: { appId: string; 
                       { label: "Region", value: a.region },
                       { label: "Last health check", value: `${formatRelative(a.lastHealthCheckAt)} · ${formatDateTime(a.lastHealthCheckAt)}` },
                       { label: "Tables discovered", value: health.tableCount },
-                      { label: "Record growth", value: `${formatInt(health.totalAvgDailyGrowth)} records/day (6-mo avg)` },
+                      { label: "Record growth", value: `${formatAppGrowth(health)}${health.totalAvgDailyGrowth === null ? "" : " (6-mo avg)"}` },
                       { label: "Awaiting retention decision", value: `${health.tablesNeedingReview} tables` },
                       { label: "Registered", value: formatDateTime(a.registeredAt) },
                     ]}

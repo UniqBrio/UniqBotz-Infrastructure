@@ -4,6 +4,7 @@ import { Lock, RotateCcw } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import type { InfrastructureSettings } from "@/lib/domain/types";
 import { formatInt, formatLakh } from "@/lib/domain/format";
+import { useIsLive } from "@/lib/data/DataProvider";
 import { useMutations, useSettings } from "@/lib/data/hooks";
 import { MockDataSource } from "@/lib/data/mock/mockDataSource";
 import { validateSettings } from "@/lib/data/validation";
@@ -18,11 +19,12 @@ import { SeverityBadge } from "@/components/status/SeverityBadge";
 
 export function SettingsView() {
   const settings = useSettings();
+  const live = useIsLive();
   return (
     <>
       <PageHeader
         title="Settings"
-        description="Global configuration for thresholds, archive targets, notifications and safety. In this phase changes are saved to local mock state and reset on reload."
+        description={`Global configuration for thresholds, archive targets, notifications and safety. ${live ? "Live values from the control plane — read-only in the dashboard." : "In this phase changes are saved to local mock state and reset on reload."}`}
       />
       <DataState resource={settings} loading={<LoadingState rows={10} />}>
         {(s) => <SettingsForm key={JSON.stringify(s)} initial={s} />}
@@ -187,7 +189,7 @@ function SettingsForm({ initial }: { initial: InfrastructureSettings }) {
               {message.text}
             </span>
           )}
-          {!message && Object.keys(errors).length > 0 && (
+          {!message && source.mode !== "live" && Object.keys(errors).length > 0 && (
             <span className="mr-auto text-xs font-medium text-high-ink">Fix {Object.keys(errors).length} validation issue(s) before saving.</span>
           )}
           <Button onClick={() => setS(initial)} disabled={!dirty || saving}>

@@ -55,16 +55,4 @@ export function Badge({
 }
 
 /** Small marker for values that come from mock/demo data. */
-export function DemoTag({ className, label = "DEMO" }: { className?: string; label?: string }) {
-  return (
-    <span
-      title="Mock/demo value — no live data source is connected in this phase."
-      className={cn(
-        "inline-flex shrink-0 items-center whitespace-nowrap rounded border border-dashed border-line-strong px-1 text-[9px] font-semibold tracking-wider text-ink-3",
-        className,
-      )}
-    >
-      {label}
-    </span>
-  );
-}
+export { DemoTag } from "./DemoTag";

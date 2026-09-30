@@ -146,6 +146,7 @@ describe("candidate preview (read-only)", () => {
     const row = (await env.cp.query(`SELECT status, preview FROM control.candidate_previews WHERE group_root = 'public.attendance'`)).rows[0];
     expect(row.status).toBe("blocked");
     expect(row.preview.blocking.join()).toMatch(/grace period is not configured/);
+    expect(row.preview).toMatchObject({ tables: ["public.attendance", "public.attendance_notes"], dateColumn: "checked_in_at", target: 3000, cutoffDay: null, days: [] });
     await enableAttendanceGroup(env.cp, { target: 3000 });
   });
 

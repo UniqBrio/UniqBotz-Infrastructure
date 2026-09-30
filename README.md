@@ -133,7 +133,7 @@ PRODUCTION DELETION: DISABLED · AUTOMATED SCHEDULING: DISABLED · PRODUCTION NO
 - **Dashboard live mode:** `NEXT_PUBLIC_INFRA_DATA_SOURCE=live` plus the server-side `CONTROL_PLANE_DATABASE_URL`.
   - The browser talks to GET-only `/api/infra/*`, which reads the control plane in a read-only session. Writes return 403.
   - The web tier never connects to application databases or sees their credentials.
-- **Tests:** 64 unit (`npm test`) and 45 integration (`npm run test:integration`, needs `prototype/scripts/start-db.sh`). Phase 3A's 161 checks still pass.
+- **Tests:** 67 unit (`npm test`) and 45 integration (`npm run test:integration`, needs `prototype/scripts/start-db.sh`). Phase 3A's 161 checks still pass.
 - **Hosted Supabase:** not validated. No disposable project was available, and none was created.
 
 Details, limitations, unresolved decisions and the exact steps before any production deletion:

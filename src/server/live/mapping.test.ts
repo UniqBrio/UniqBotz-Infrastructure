@@ -79,3 +79,18 @@ describe("live mapping (control plane → Phase 1 UI contracts)", () => {
     expect(a.notifications.every((n) => n.status === "not_configured" && n.at === null)).toBe(true);
   });
 });
+
+describe("deletion is never presented as allowed for a verify-only job", () => {
+  it("isDeletionAllowed is false when the live deletion state is blocked", async () => {
+    const { isDeletionAllowed } = await import("@/lib/domain/jobs");
+    const j = mapJob({
+      job: { id: "J1", application_id: "app", group_root: "public.t", tables: ["public.t"], mode: "ARCHIVE_AND_VERIFY_ONLY", status: "ready_for_deletion", attempt: 1,
+        spec: { target: 10 }, selection: { totalSelected: 10 }, created_at: "2026-09-30T00:00:00Z", updated_at: "2026-09-30T00:00:00Z", finished_at: null, created_by: "cli", failure: null },
+      manifest: { store_uri: "file:///x", files: {} },
+      verification: { verified: true, failed_stage: null, checks: [{ stage: "archive_integrity", name: "sha", pass: true, detail: "ok" }], verified_at: "2026-09-30T00:00:00Z" },
+      batches: [], candidateRows: 10, rootRows: 10, batchSize: 2000,
+    });
+    expect(j.verification.state).toBe("passed");
+    expect(isDeletionAllowed(j)).toBe(false);
+  });
+});

@@ -1,8 +1,9 @@
 "use client";
 
 import { combineResources, useApplicationHealthList, useRetentionPolicies, useSettings, useTables } from "@/lib/data/hooks";
+import { useIsLive } from "@/lib/data/DataProvider";
 import { useScopedAppId } from "@/lib/data/scope";
-import { formatDateTime, formatInt, formatMb, formatPct, formatRelative } from "@/lib/domain/format";
+import { formatAppGrowth, formatDateTime, formatInt, formatMb, formatPct, formatRelative } from "@/lib/domain/format";
 import { Card } from "@/components/ui/Card";
 import { DataState } from "@/components/ui/DataState";
 import { DemoTag } from "@/components/ui/Badge";
@@ -15,6 +16,7 @@ import { ConnectionBadge } from "@/components/status/ConnectionBadge";
 import { ScopeEyebrow } from "./ScopeEyebrow";
 
 export function DatabaseHealthView() {
+  const live = useIsLive();
   const appId = useScopedAppId();
   const all = combineResources({
     health: useApplicationHealthList(),
@@ -27,7 +29,7 @@ export function DatabaseHealthView() {
       <PageHeader
         eyebrow={<ScopeEyebrow />}
         title="Database Health"
-        description="Technical view of each application's database: size, capacity, table sizes, index sizes and growth. Size figures are demo estimates in this phase."
+        description={`Technical view of each application's database: size, capacity, table sizes, index sizes and growth. ${live ? "Collected read-only by the worker; row counts are exact where marked, otherwise planner estimates." : "Size figures are demo estimates in this phase."}`}
       />
       <DataState resource={all} loading={<CardGridSkeleton count={2} />}>
         {({ health, tables, policies, settings }) => (
@@ -56,7 +58,7 @@ export function DatabaseHealthView() {
                             { label: "Usage", value: formatPct(h.dbUsagePct) },
                             { label: "Table count", value: h.tableCount },
                             { label: "Index size (sum)", value: formatMb(Math.round(indexTotal * 10) / 10) },
-                            { label: "Record growth", value: `${formatInt(h.totalAvgDailyGrowth)}/day` },
+                            { label: "Record growth", value: formatAppGrowth(h, "/day") },
                             { label: "Last health check", value: <span title={formatDateTime(a.lastHealthCheckAt)}>{formatRelative(a.lastHealthCheckAt)}</span> },
                             { label: "Connection", value: <ConnectionBadge status={a.connectionStatus} /> },
                           ]}

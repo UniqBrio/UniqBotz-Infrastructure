@@ -118,7 +118,8 @@ export interface ApplicationHealth {
   status: HealthStatus;
   tableCount: number;
   largestTable: TableHealth | null;
-  totalAvgDailyGrowth: number;
+  /** Sum over tables with a measured rate; null when no table has one (INSUFFICIENT HISTORY). */
+  totalAvgDailyGrowth: number | null;
   /** True when at least one table has INSUFFICIENT HISTORY, so the total is a lower bound. */
   growthIncomplete?: boolean;
   tablesNeedingReview: number;

@@ -33,8 +33,9 @@ export function isActiveJob(job: ArchiveJob): boolean {
  * The hard safety gate. Deletion may only be reviewed/confirmed when the archive
  * has been verified. Any other verification state means zero records may be deleted.
  */
+/** A blocked deletion state (verify-only job / deletion disabled in the deployment) always wins. */
 export function isDeletionAllowed(job: ArchiveJob): boolean {
-  return job.verification.state === "passed" && job.verification.checksumMatch === true
+  return job.deletion.state !== "blocked" && job.verification.state === "passed" && job.verification.checksumMatch === true
     && job.verification.verifiedCount === job.verification.expectedCount;
 }
 

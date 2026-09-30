@@ -48,7 +48,7 @@ Related documents:
 | Operator CLI | `worker/cli.ts`. Manual one-shot commands: `migrate`, `register`, `collect`, `job:create`, `job:run`, `status`. There is no scheduler and no approve command |
 | Live UI path | `/api/infra/*` (GET only) → server-only service → control plane (read-only session). `ApiDataSource` implements the Phase 1 `InfrastructureDataSource` contract |
 | UI | Phase 1 screens now also render live data. Additions: a green "LIVE · READ-ONLY" banner, a runtime safety panel in Settings, INSUFFICIENT HISTORY growth panels, estimate vs exact counts, read-only candidate previews with exclusions and blocking reasons, and "Deletion disabled in this deployment" in Deletion Review. Writes are disabled in live mode |
-| Tests | 64 unit tests (`npm test`) and 45 integration tests on the local Supabase Postgres image (`npm run test:integration`). All 161 Phase 3A checks re-run and pass |
+| Tests | 67 unit tests (`npm test`) and 45 integration tests on the local Supabase Postgres image (`npm run test:integration`). All 161 Phase 3A checks re-run and pass |
 
 What was **not** done, as instructed:
 
@@ -281,10 +281,11 @@ Additional Phase 3B controls:
 
 | Suite | Command | Result |
 |---|---|---|
-| Unit (Phase 1 + Phase 3B; no database) | `npm test` | **64 / 64 passed** |
+| Unit (Phase 1 + Phase 3B; no database) | `npm test` | **67 / 67 passed** |
 | Integration (local Supabase Postgres, synthetic) | `npm run test:integration` | **45 / 45 passed** |
 | Phase 3A prototypes (unchanged) | `prototype/scripts/run-all.sh` | **161 / 161 checks passed** (re-run) |
 | Lint / typecheck / production build | `npm run lint` / `npm run typecheck` / `npm run build` | clean |
+| Live UI smoke test | live build + synthetic control plane, Chromium screenshots | passed after fixes 5–7 below |
 
 Coverage against the required list:
 
@@ -338,6 +339,20 @@ Bugs found by the new tests and fixed:
 3. The collector counted rows through RLS with a non-bypass monitor role, which understates tables. Such tables now keep the planner estimate and report INSUFFICIENT HISTORY.
 4. The retention-policy constraint forced FK-group **members** to have their own date column. Members now follow the root's day.
 
+**Live UI smoke test.** I built the dashboard with `NEXT_PUBLIC_INFRA_DATA_SOURCE=live`, pointed it at a synthetic control plane (7 discovered tables, one verified job), and checked the pages in Chromium. That run found and fixed:
+
+5. The Archive Candidates page crashed ("Invalid time value") on a blocked preview.
+   - `formatDate` now renders invalid values as "—".
+   - Blocked previews carry their configured context and render only the blocking reasons, with no selection.
+6. **The safety-gate panel showed "DELETION: ALLOWED" for a verified ARCHIVE_AND_VERIFY_ONLY job.**
+   - `isDeletionAllowed` now respects a blocked deletion state.
+   - The panel now shows **DISABLED**.
+   - A unit test covers this.
+7. Live pages still carried DEMO/SIMULATED tags and mock-only wording. An application with no measured table showed "0 records/day".
+   - Demo tags are hidden in live mode.
+   - Application growth is `null` → "INSUFFICIENT HISTORY".
+   - Settings and Database Health descriptions state the live, read-only source.
+
 ## 13. How to run
 
 ```bash
@@ -376,6 +391,7 @@ NEXT_PUBLIC_INFRA_DATA_SOURCE=live CONTROL_PLANE_DATABASE_URL=… npm run build 
 - `requires_review` jobs do not block a new job for the same group. An operator review workflow (resolve, retry, abandon) is not implemented.
 - The candidate chunks (exact keys) stay in the control plane after a job finishes. A purge policy is undecided (Q-B10).
 - `vault:` secret references are reserved but not implemented.
+- An application whose database was never reached shows a database size of 0 KB rather than "unknown"; its connection status (`disconnected`) is the signal to read.
 - The Phase 3A `prototype/` keeps its own copies of the libraries as frozen evidence. The production code path is `worker/`, extracted from it.
 
 ## 15. Unresolved decisions

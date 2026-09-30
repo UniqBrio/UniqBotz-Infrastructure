@@ -71,7 +71,7 @@ export function deriveApplicationHealth(
     status,
     tableCount: tables.length,
     largestTable,
-    totalAvgDailyGrowth: tables.reduce((a, t) => a + (t.avgDailyGrowth6m ?? 0), 0),
+    totalAvgDailyGrowth: tables.some((t) => t.avgDailyGrowth6m !== null) ? tables.reduce((a, t) => a + (t.avgDailyGrowth6m ?? 0), 0) : null,
     growthIncomplete: tables.some((t) => t.avgDailyGrowth6m === null),
     tablesNeedingReview: tables.filter((t) => t.policy === "review_required").length,
     tablesAtOrAboveLow: tables.filter((t) => t.severity !== "NONE").length,

@@ -200,7 +200,14 @@ async function refreshPreviews(cp: pg.Client, c: pg.Client, applicationId: strin
     const nonArchiveMember = members.filter((m) => m.policy !== "ARCHIVE" || !m.enabled).map((m) => `${m.schemaName}.${m.tableName}: group member is not an enabled ARCHIVE policy`);
     let preview;
     if (errors.length || nonArchiveMember.length) {
-      preview = { applicationId, root: rootQ, status: "blocked", blocking: [...errors, ...nonArchiveMember], computedAt: new Date().toISOString() };
+      const grace = root.gracePeriodDays ?? defaultGrace;
+      preview = {
+        applicationId, root: rootQ, status: "blocked", blocking: [...errors, ...nonArchiveMember], computedAt: new Date().toISOString(),
+        tables: [rootQ, ...members.map((m) => `${m.schemaName}.${m.tableName}`)], dateColumn: root.dateColumn, target: root.targetRecords,
+        timeZone: root.timeZone ?? appTz,
+        cutoffDay: grace !== null && root.protectedPeriodMonths ? eligibilityCutoffDay(today, root.protectedPeriodMonths, grace) : null,
+        days: [], excluded: [],
+      };
     } else {
       const grace = root.gracePeriodDays ?? defaultGrace!;
       const plan = await planGroup(c, {

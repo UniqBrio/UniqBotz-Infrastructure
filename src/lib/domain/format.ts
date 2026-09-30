@@ -49,7 +49,8 @@ const monthFmt = new Intl.DateTimeFormat("en-GB", { month: "short", year: "2-dig
 /** YYYY-MM-DD → "31 Jul 2024" */
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return "—";
-  return dateFmt.format(new Date(iso.length === 10 ? `${iso}T00:00:00Z` : iso));
+  const d = new Date(iso.length === 10 ? `${iso}T00:00:00Z` : iso);
+  return Number.isNaN(d.getTime()) ? "—" : dateFmt.format(d);
 }
 
 export function formatShortDate(iso: string): string {
@@ -84,4 +85,10 @@ export function formatDays(days: number | null): string {
   if (days === 0) return "Reached";
   if (days > 3650) return "> 10 years";
   return `~${formatInt(days)} days`;
+}
+
+/** Application growth: never shows a number that was not measured. */
+export function formatAppGrowth(h: { totalAvgDailyGrowth: number | null; growthIncomplete?: boolean }, unit = "records/day"): string {
+  if (h.totalAvgDailyGrowth === null) return "INSUFFICIENT HISTORY";
+  return `${formatInt(h.totalAvgDailyGrowth)}${unit.startsWith("/") ? "" : " "}${unit}${h.growthIncomplete ? " (measured tables only)" : ""}`;
 }

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import type { ApplicationHealth, CapacityThresholdsPct } from "@/lib/domain/types";
-import { formatInt, formatRelative } from "@/lib/domain/format";
+import { formatAppGrowth, formatInt, formatRelative } from "@/lib/domain/format";
 import { HealthStatusBadge } from "@/components/status/HealthStatusBadge";
 import { SeverityBadge } from "@/components/status/SeverityBadge";
 import { ConnectionBadge } from "@/components/status/ConnectionBadge";
@@ -35,7 +35,7 @@ export function ApplicationCard({ health, capacity }: { health: ApplicationHealt
           </div>
           <div>
             <dt className="text-[11px] font-semibold uppercase tracking-wider text-ink-3">Growth</dt>
-            <dd className="num mt-0.5 font-medium">{formatInt(health.totalAvgDailyGrowth)} records/day</dd>
+            <dd className="num mt-0.5 font-medium">{formatAppGrowth(health)}</dd>
           </div>
           <div className="col-span-2">
             <dt className="text-[11px] font-semibold uppercase tracking-wider text-ink-3">Largest table</dt>

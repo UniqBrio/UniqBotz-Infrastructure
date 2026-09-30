@@ -7,7 +7,7 @@ import { cn } from "@/lib/cn";
 /**
  * The hard safety gate, rendered as two linked panels:
  *   Archive Verification (PASSED / FAILED / RUNNING / PENDING)
- *   Deletion            (ALLOWED / BLOCKED / LOCKED)
+ *   Deletion            (ALLOWED / DISABLED / BLOCKED / LOCKED)
  * A failed verification always states "Records deleted: 0".
  */
 export function VerificationStatus({ job, compact = false }: { job: ArchiveJob; compact?: boolean }) {
@@ -23,7 +23,9 @@ export function VerificationStatus({ job, compact = false }: { job: ArchiveJob; 
 
   const del = allowed
     ? { label: "ALLOWED", Icon: LockOpen, cls: "border-ok-line bg-ok-soft text-ok-ink", note: "Verification passed — deletion may proceed after operator review." }
-    : v.state === "failed"
+    : v.state === "passed" && job.deletion.state === "blocked"
+      ? { label: "DISABLED", Icon: Lock, cls: "border-neutral-line bg-neutral-soft text-ink-2", note: "Verification passed, but deletion is disabled: archive-and-verify-only job (ALLOW_DELETION=false)." }
+      : v.state === "failed"
       ? { label: "BLOCKED", Icon: Lock, cls: "border-high-line bg-high-soft text-high-ink", note: "Verification failed — deletion is blocked." }
       : { label: "LOCKED", Icon: Lock, cls: "border-neutral-line bg-neutral-soft text-ink-2", note: "Locked until archive verification passes." };
 

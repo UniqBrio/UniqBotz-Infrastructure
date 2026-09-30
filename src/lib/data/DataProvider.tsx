@@ -31,6 +31,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }
 
+/** True when the dashboard shows live control-plane data (safe outside the provider). */
+export function useIsLive(): boolean {
+  return useContext(DataContext)?.source.mode === "live";
+}
+
 export function useDataContext(): DataContextValue {
   const ctx = useContext(DataContext);
   if (!ctx) throw new Error("useDataContext must be used inside <DataProvider>");

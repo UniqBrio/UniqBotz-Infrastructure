@@ -34,6 +34,7 @@ export function ArchiveCandidateCard({ candidate, appName }: { candidate: Archiv
   const toggle = (t: string) =>
     setSelectedTables((cur) => (cur.includes(t) ? (cur.length > 1 ? cur.filter((x) => x !== t) : cur) : candidate.tables.filter((x) => cur.includes(x) || x === t)));
 
+  const blocked = (candidate.blocking?.length ?? 0) > 0;
   const reason = selection.reachedTarget
     ? `Target crossed on final complete day (${formatDate(selection.boundaryDate)})`
     : "Eligible records do not reach the target";
@@ -53,8 +54,8 @@ export function ArchiveCandidateCard({ candidate, appName }: { candidate: Archiv
       }
       description={`Archive candidate ${candidate.id}`}
       actions={
-        <Button variant="secondary" size="sm" disabled title="Job creation is implemented in the backend phase">
-          <Lock className="size-3.5" aria-hidden /> Create archive job (backend phase)
+        <Button variant="secondary" size="sm" disabled title={candidate.readOnly ? "Phase 3B: jobs are created by an operator with the worker CLI (archive-and-verify only)" : "Job creation is implemented in the backend phase"}>
+          <Lock className="size-3.5" aria-hidden /> {candidate.readOnly ? "Create job (operator CLI only)" : "Create archive job (backend phase)"}
         </Button>
       }
     >
@@ -92,12 +93,18 @@ export function ArchiveCandidateCard({ candidate, appName }: { candidate: Archiv
               <Link href={`/archive-jobs/${candidate.blockedByJobId}`} className="font-semibold underline">
                 {candidate.blockedByJobId}
               </Link>{" "}
-              is still running for this table. This preview continues from its boundary ({formatDate(candidate.previousBoundary)}) and
-              cannot start until that job completes.
+              is still active for this table.{" "}
+              {candidate.previousBoundary ? `This preview continues from its boundary (${formatDate(candidate.previousBoundary)}) and` : "A new job"}{" "}
+              cannot start until that job finishes.
             </p>
           </div>
         )}
-        {!selection.reachedTarget && (
+        {blocked && (
+          <p className="text-xs text-ink-2">
+            No selection is computed while the configuration is blocked. Fix the reasons above (policy, FK group, RLS role) and collect again.
+          </p>
+        )}
+        {!blocked && !selection.reachedTarget && (
           <div className="flex items-start gap-2 rounded-md border border-line bg-surface-2 px-3 py-2 text-xs text-ink-2">
             <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-ink-3" aria-hidden />
             <p>
@@ -108,7 +115,7 @@ export function ArchiveCandidateCard({ candidate, appName }: { candidate: Archiv
           </div>
         )}
 
-        {multi && (
+        {!blocked && multi && (
           <fieldset className="rounded-md border border-line p-3">
             <legend className="px-1 text-[11px] font-semibold uppercase tracking-wider text-ink-3">Selected tables</legend>
             <div className="flex flex-wrap gap-2">
@@ -136,6 +143,7 @@ export function ArchiveCandidateCard({ candidate, appName }: { candidate: Archiv
           </fieldset>
         )}
 
+        {!blocked && (
         <KeyValueList
           columns={4}
           items={[
@@ -162,6 +170,7 @@ export function ArchiveCandidateCard({ candidate, appName }: { candidate: Archiv
             { label: "Reason", value: reason },
           ]}
         />
+        )}
 
         {selection.reachedTarget && (
           <FinalDayEquation
@@ -172,10 +181,12 @@ export function ArchiveCandidateCard({ candidate, appName }: { candidate: Archiv
           />
         )}
 
-        <div>
-          <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-3">Daily aggregation</div>
-          <ArchiveDayTimeline days={days} tables={selectedTables} selection={selection} target={candidate.target} />
-        </div>
+        {!blocked && (
+          <div>
+            <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-3">Daily aggregation</div>
+            <ArchiveDayTimeline days={days} tables={selectedTables} selection={selection} target={candidate.target} />
+          </div>
+        )}
       </div>
     </Card>
   );
