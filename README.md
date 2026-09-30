@@ -99,3 +99,10 @@ architecture decision record. In summary:
 - **Open items:** plan/ownership of projects, archive data location (India residency decides the storage
   provider), behaviour when the target is not reached, capacity threshold values, approval rules, archive
   retention and erasure. See §21 of the ADR, which also lists the technical prototypes required before Phase 3.
+
+## Phase 3A Technical Validation
+
+The critical Phase 2 assumptions were prototyped on a local copy of the official Supabase Postgres image with
+**synthetic data only** (`prototype/`, reproducible with `prototype/scripts/run-all.sh`). All 161 checks passed.
+Several findings refine the architecture; see
+[`PHASE_3A_TECHNICAL_VALIDATION_REPORT.md`](./PHASE_3A_TECHNICAL_VALIDATION_REPORT.md). Hosted-Supabase behaviour is not yet validated.

@@ -1,0 +1,102 @@
+{
+  "id": "late-data",
+  "title": "Late / backdated records during a job",
+  "label": "PROTOTYPE / SYNTHETIC DATA ONLY",
+  "ranAt": "2026-09-30T07:20:36.918Z",
+  "summary": {
+    "checks": 9,
+    "passed": 9,
+    "failed": 0
+  },
+  "checks": [
+    {
+      "name": "B: job reaches ready_for_deletion (selected, frozen, exported, verified)",
+      "expected": "ready_for_deletion",
+      "actual": "ready_for_deletion",
+      "pass": true
+    },
+    {
+      "name": "B: new in-range record → preserved",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "name": "B: backdated record → preserved",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "name": "B: modified candidate → skipped (still present, counted as drifted)",
+      "expected": [
+        true,
+        1
+      ],
+      "actual": [
+        true,
+        1
+      ],
+      "pass": true
+    },
+    {
+      "name": "B: unchanged verified candidate → deleted",
+      "expected": false,
+      "actual": false,
+      "pass": true
+    },
+    {
+      "name": "B: job completes with exceptions (drift reported), reconciliation holds",
+      "expected": [
+        "completed_with_exceptions",
+        true
+      ],
+      "actual": [
+        "completed_with_exceptions",
+        true
+      ],
+      "pass": true
+    },
+    {
+      "name": "next job's oldest day is the backdated straggler's day (2021-06-01), not boundary + 1",
+      "expected": "2021-06-01",
+      "actual": "2021-06-01",
+      "pass": true
+    },
+    {
+      "name": "A: a row inserted inside the selected days BEFORE the freeze is frozen, archived and verified (whole day stays whole)",
+      "expected": [
+        "ready_for_deletion",
+        true
+      ],
+      "actual": [
+        "ready_for_deletion",
+        true
+      ],
+      "pass": true
+    },
+    {
+      "name": "A: a row backdated before the first selected day BEFORE the freeze is also inside the snapshot predicate",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    }
+  ],
+  "measurements": {
+    "variant_B_counts": {
+      "frozen": 20147,
+      "deleted": 20146,
+      "missing": 0,
+      "skipped": 1,
+      "all_done": true,
+      "requested": 20147,
+      "reconciles": true,
+      "table_name": "public.attendance_records",
+      "stillPresent": 1,
+      "missing_on_retried_batches": 0
+    }
+  },
+  "notes": [
+    "Variant A rows are archived and verified before deletion, so deleting them is safe. Only rows arriving AFTER the freeze are protected by exclusion; both paths satisfy invariant I-1."
+  ]
+}

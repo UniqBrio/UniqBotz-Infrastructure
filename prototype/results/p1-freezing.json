@@ -1,0 +1,133 @@
+{
+  "id": "p1-freezing",
+  "title": "P1 — Exact candidate freezing",
+  "label": "PROTOTYPE / SYNTHETIC DATA ONLY",
+  "ranAt": "2026-09-30T07:16:08.366Z",
+  "summary": {
+    "checks": 15,
+    "passed": 15,
+    "failed": 0
+  },
+  "checks": [
+    {
+      "name": "plan has no blocking issues",
+      "expected": [],
+      "actual": [],
+      "pass": true
+    },
+    {
+      "name": "frozen rows = selected whole-day total",
+      "expected": 5058,
+      "actual": 5058,
+      "pass": true
+    },
+    {
+      "name": "archive verification passed",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "name": "naive range delete would destroy the new in-range row (not archived)",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "name": "naive range delete would destroy the backdated row (not archived)",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "name": "naive range delete would destroy the edited row (archived copy stale)",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "name": "unchanged frozen rows deleted (frozen − changed − app-deleted)",
+      "expected": 5056,
+      "actual": 5056,
+      "pass": true
+    },
+    {
+      "name": "changed candidate NOT deleted (drifted)",
+      "expected": [
+        true,
+        1
+      ],
+      "actual": [
+        true,
+        1
+      ],
+      "pass": true
+    },
+    {
+      "name": "row deleted by the app is reported as missing",
+      "expected": 1,
+      "actual": 1,
+      "pass": true
+    },
+    {
+      "name": "new row inside archived range preserved",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "name": "backdated row preserved",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "name": "reconciliation: requested = deleted + drifted + held + missing",
+      "expected": 5058,
+      "actual": 5058,
+      "pass": true
+    },
+    {
+      "name": "rows remaining from the frozen set = drifted only",
+      "expected": 1,
+      "actual": 1,
+      "pass": true
+    },
+    {
+      "name": "fingerprint deterministic for unchanged row",
+      "expected": "963cb258648b39d05cf7fa37bf8a3109a1e4c357cac82684812c6fad9b6f003b",
+      "actual": "963cb258648b39d05cf7fa37bf8a3109a1e4c357cac82684812c6fad9b6f003b",
+      "pass": true
+    },
+    {
+      "name": "fingerprint CHANGES if session TimeZone differs (settings must be pinned)",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    }
+  ],
+  "measurements": {
+    "selection": {
+      "oldest": "2023-01-02",
+      "boundary": "2023-04-08",
+      "total": 5058,
+      "beforeFinal": 4959,
+      "finalDay": 99,
+      "nullDateRows": 10000
+    },
+    "export_ms": 599,
+    "naive_range_delete_would_remove": 5059,
+    "delete_ms": 122,
+    "delete_totals": {
+      "requested": 5058,
+      "deleted": 5056,
+      "drifted": 1,
+      "held": 0,
+      "missing": 1
+    },
+    "fingerprint_sha256_all_rows_ms": 11583,
+    "fingerprint_md5_all_rows_ms": 11984,
+    "attendance_rows_fingerprinted": 994945
+  },
+  "notes": []
+}

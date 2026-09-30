@@ -1,0 +1,144 @@
+{
+  "id": "p10-storage",
+  "title": "P10 — Database storage after DELETE",
+  "label": "PROTOTYPE / SYNTHETIC DATA ONLY",
+  "ranAt": "2026-09-30T07:20:29.978Z",
+  "summary": {
+    "checks": 8,
+    "passed": 8,
+    "failed": 0
+  },
+  "checks": [
+    {
+      "name": "DELETE does not reduce database size immediately (after ≥ before − 0.5 MB)",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "name": "plain VACUUM does not return space for scattered deletes (heap unchanged)",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "name": "explicit VACUUM clears dead tuples",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "name": "freed space is reused: re-inserting 125k rows grows the heap far less than a fresh table",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "name": "VACUUM FULL returns space (heap shrinks)",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "name": "VACUUM FULL blocks ordinary reads while it runs (read waits ≫ baseline)",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "name": "in read-only mode the archiver's DELETE fails (25006)",
+      "expected": "25006",
+      "actual": "25006",
+      "pass": true
+    },
+    {
+      "name": "documented session escape re-enables writes for that session",
+      "expected": 1,
+      "actual": 1,
+      "pass": true
+    }
+  ],
+  "measurements": {
+    "delete_125k_ms": 2020,
+    "wal_generated_by_delete_MB": 11.5,
+    "autovacuum_alone_after_90s": {
+      "deadTuplesRemaining": 0,
+      "secondsObserved": 5
+    },
+    "explicit_vacuum_ms": 94,
+    "heap_growth_for_125k_inserts_into_fresh_table_MB": 7.2,
+    "vacuum_full_ms": 1153,
+    "read_latency_ms": {
+      "baseline": 89,
+      "duringVacuumFull": 1053
+    },
+    "size_series": [
+      {
+        "label": "1 baseline (600k rows)",
+        "dbMB": 61.9,
+        "heapMB": 37.5,
+        "indexMB": 17,
+        "live": 600000,
+        "dead": 0,
+        "autovacuumed": false
+      },
+      {
+        "label": "2 immediately after deleting 125k",
+        "dbMB": 61.9,
+        "heapMB": 37.5,
+        "indexMB": 17,
+        "live": 475000,
+        "dead": 125000,
+        "autovacuumed": false
+      },
+      {
+        "label": "3a autovacuum alone (observed)",
+        "dbMB": 61.9,
+        "heapMB": 37.5,
+        "indexMB": 17,
+        "live": 475000,
+        "dead": 0,
+        "autovacuumed": true
+      },
+      {
+        "label": "3b after explicit VACUUM",
+        "dbMB": 61.9,
+        "heapMB": 37.5,
+        "indexMB": 17,
+        "live": 475000,
+        "dead": 0,
+        "autovacuumed": true
+      },
+      {
+        "label": "4 after inserting 125k new rows",
+        "dbMB": 65.4,
+        "heapMB": 37.5,
+        "indexMB": 20.4,
+        "live": 600000,
+        "dead": 0,
+        "autovacuumed": true
+      },
+      {
+        "label": "5 before VACUUM FULL (after another 200k delete + VACUUM)",
+        "dbMB": 65.4,
+        "heapMB": 37.5,
+        "indexMB": 20.4,
+        "live": 411674,
+        "dead": 0,
+        "autovacuumed": true
+      },
+      {
+        "label": "6 after VACUUM FULL",
+        "dbMB": 43.1,
+        "heapMB": 24.3,
+        "indexMB": 11.3,
+        "live": 211674,
+        "dead": 200000,
+        "autovacuumed": true
+      }
+    ]
+  },
+  "notes": [
+    "default_transaction_read_only is a session default, not a privilege boundary: any role can override it. How hosted Supabase enforces read-only mode must be confirmed on a real project; the worker must never auto-escape."
+  ]
+}

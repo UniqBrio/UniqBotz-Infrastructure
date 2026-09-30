@@ -1,0 +1,286 @@
+{
+  "id": "p3-fk-graph",
+  "title": "P3 — Multi-table / FK dependencies",
+  "label": "PROTOTYPE / SYNTHETIC DATA ONLY",
+  "ranAt": "2026-09-30T07:16:16.559Z",
+  "summary": {
+    "checks": 23,
+    "passed": 23,
+    "failed": 0
+  },
+  "checks": [
+    {
+      "name": "jalsa edges discovered from catalog",
+      "expected": [
+        "public.order_items → public.orders : NO ACTION",
+        "public.payments → public.orders : RESTRICT"
+      ],
+      "actual": [
+        "public.order_items → public.orders : NO ACTION",
+        "public.payments → public.orders : RESTRICT"
+      ],
+      "pass": true
+    },
+    {
+      "name": "parent + both children: no blocking issues",
+      "expected": 0,
+      "actual": 0,
+      "pass": true
+    },
+    {
+      "name": "derived delete order (referencing tables before referenced)",
+      "expected": [
+        "public.order_items",
+        "public.payments",
+        "public.orders"
+      ],
+      "actual": [
+        "public.order_items",
+        "public.payments",
+        "public.orders"
+      ],
+      "pass": true
+    },
+    {
+      "name": "parent without children: blocked by both referencing tables",
+      "expected": [
+        "unselected_child_blocks:public.order_items",
+        "unselected_child_blocks:public.payments"
+      ],
+      "actual": [
+        "unselected_child_blocks:public.order_items",
+        "unselected_child_blocks:public.payments"
+      ],
+      "pass": true
+    },
+    {
+      "name": "if forced, deleting a referenced parent fails (NO ACTION → 23503), i.e. fails closed",
+      "expected": "23503",
+      "actual": "23503",
+      "pass": true
+    },
+    {
+      "name": "child without parent: allowed with warning",
+      "expected": [
+        0,
+        "child_without_parent"
+      ],
+      "actual": [
+        0,
+        "child_without_parent"
+      ],
+      "pass": true
+    },
+    {
+      "name": "CASCADE and SET NULL children unselected → blocked",
+      "expected": [
+        "unselected_child_cascade:fk_lab.lab_items",
+        "unselected_child_set_null:fk_lab.lab_notes"
+      ],
+      "actual": [
+        "unselected_child_cascade:fk_lab.lab_items",
+        "unselected_child_set_null:fk_lab.lab_notes"
+      ],
+      "pass": true
+    },
+    {
+      "name": "demonstrated: CASCADE silently deletes unarchived children",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "name": "demonstrated: SET NULL silently modifies unarchived children",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "name": "cycles detected (2-table cycle + self-reference)",
+      "expected": [
+        [
+          "fk_lab.cyc_a",
+          "fk_lab.cyc_b"
+        ],
+        [
+          "fk_lab.lab_comments"
+        ]
+      ],
+      "actual": [
+        [
+          "fk_lab.cyc_a",
+          "fk_lab.cyc_b"
+        ],
+        [
+          "fk_lab.lab_comments"
+        ]
+      ],
+      "pass": true
+    },
+    {
+      "name": "deletion order refuses a cycle",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "name": "table with no FK path to root is rejected from the group",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "name": "group plan blocking issues",
+      "expected": [],
+      "actual": [],
+      "pass": true
+    },
+    {
+      "name": "adding rows on the boundary day does not move the boundary",
+      "expected": "2024-02-18",
+      "actual": "2024-02-18",
+      "pass": true
+    },
+    {
+      "name": "late-night order has children dated after the boundary (would split under per-table dates)",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "name": "export order = parents first",
+      "expected": [
+        "public.order_items",
+        "public.orders",
+        "public.payments"
+      ],
+      "actual": [
+        "public.order_items",
+        "public.orders",
+        "public.payments"
+      ],
+      "pass": true
+    },
+    {
+      "name": "frozen totals = selection totals per table",
+      "expected": {
+        "public.order_items": 1833,
+        "public.orders": 611,
+        "public.payments": 611
+      },
+      "actual": {
+        "public.order_items": 1833,
+        "public.orders": 611,
+        "public.payments": 611
+      },
+      "pass": true
+    },
+    {
+      "name": "group archive verified",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "name": "root-driven freeze keeps the late-night order WITH its next-day items and payment",
+      "expected": [
+        3,
+        1
+      ],
+      "actual": [
+        3,
+        1
+      ],
+      "pass": true
+    },
+    {
+      "name": "order with a late child is held, not deleted, no FK error",
+      "expected": [
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0
+      ],
+      "pass": true
+    },
+    {
+      "name": "late child row preserved",
+      "expected": 1,
+      "actual": 1,
+      "pass": true
+    },
+    {
+      "name": "no orphans after group deletion",
+      "expected": {
+        "items": 0,
+        "pays": 0
+      },
+      "actual": {
+        "items": 0,
+        "pays": 0
+      },
+      "pass": true
+    },
+    {
+      "name": "all frozen children deleted",
+      "expected": [
+        1833,
+        611
+      ],
+      "actual": [
+        1833,
+        611
+      ],
+      "pass": true
+    }
+  ],
+  "measurements": {
+    "discovered_edges": [
+      "fk_lab.cyc_a(b_id) → fk_lab.cyc_b ON DELETE NO ACTION",
+      "fk_lab.cyc_b(a_id) → fk_lab.cyc_a ON DELETE NO ACTION",
+      "fk_lab.lab_comments(parent_id) → fk_lab.lab_comments ON DELETE NO ACTION",
+      "fk_lab.lab_items(order_id) → fk_lab.lab_orders ON DELETE CASCADE",
+      "fk_lab.lab_notes(order_id) → fk_lab.lab_orders ON DELETE SET NULL",
+      "public.order_items(order_id) → public.orders ON DELETE NO ACTION",
+      "public.payments(order_id) → public.orders ON DELETE RESTRICT"
+    ],
+    "cascade_demo_deleting_10_parents": {
+      "itemsSilentlyDeleted": 30,
+      "notesSilentlyNulled": 19
+    },
+    "group_selection": {
+      "oldest": "2024-01-02",
+      "boundary": "2024-02-18",
+      "total": 3055,
+      "byTable": {
+        "public.orders": 611,
+        "public.payments": 611,
+        "public.order_items": 1833
+      }
+    },
+    "orders_in_candidate_range_whose_items_fall_on_another_day": 1,
+    "group_delete_totals": {
+      "public.order_items": {
+        "deleted": 1833,
+        "drifted": 0,
+        "held": 0,
+        "missing": 0
+      },
+      "public.payments": {
+        "deleted": 611,
+        "drifted": 0,
+        "held": 0,
+        "missing": 0
+      },
+      "public.orders": {
+        "deleted": 610,
+        "drifted": 0,
+        "held": 1,
+        "missing": 0
+      }
+    }
+  },
+  "notes": []
+}

@@ -1,0 +1,189 @@
+{
+  "id": "p8-schema-change",
+  "title": "P8 — Schema change",
+  "label": "PROTOTYPE / SYNTHETIC DATA ONLY",
+  "ranAt": "2026-09-30T07:20:11.774Z",
+  "summary": {
+    "checks": 9,
+    "passed": 9,
+    "failed": 0
+  },
+  "checks": [
+    {
+      "name": "added_column: detected → requires_review, DELETE = 0",
+      "expected": [
+        "ready_for_deletion",
+        "requires_review",
+        0
+      ],
+      "actual": [
+        "ready_for_deletion",
+        "requires_review",
+        0
+      ],
+      "pass": true
+    },
+    {
+      "name": "removed_column: detected → requires_review, DELETE = 0",
+      "expected": [
+        "ready_for_deletion",
+        "requires_review",
+        0
+      ],
+      "actual": [
+        "ready_for_deletion",
+        "requires_review",
+        0
+      ],
+      "pass": true
+    },
+    {
+      "name": "renamed_column: detected → requires_review, DELETE = 0",
+      "expected": [
+        "ready_for_deletion",
+        "requires_review",
+        0
+      ],
+      "actual": [
+        "ready_for_deletion",
+        "requires_review",
+        0
+      ],
+      "pass": true
+    },
+    {
+      "name": "changed_type: detected → requires_review, DELETE = 0",
+      "expected": [
+        "ready_for_deletion",
+        "requires_review",
+        0
+      ],
+      "actual": [
+        "ready_for_deletion",
+        "requires_review",
+        0
+      ],
+      "pass": true
+    },
+    {
+      "name": "changed_constraint: detected → requires_review, DELETE = 0",
+      "expected": [
+        "ready_for_deletion",
+        "requires_review",
+        0
+      ],
+      "actual": [
+        "ready_for_deletion",
+        "requires_review",
+        0
+      ],
+      "pass": true
+    },
+    {
+      "name": "changed_fk: detected → requires_review, DELETE = 0",
+      "expected": [
+        "ready_for_deletion",
+        "requires_review",
+        0
+      ],
+      "actual": [
+        "ready_for_deletion",
+        "requires_review",
+        0
+      ],
+      "pass": true
+    },
+    {
+      "name": "row fingerprint alone misses rename / type / constraint changes → schema hash is REQUIRED",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "name": "DDL with lock_timeout fails fast while an export snapshot is open (55P03)",
+      "expected": "55P03",
+      "actual": "55P03",
+      "pass": true
+    },
+    {
+      "name": "an app read queued behind the waiting DDL is blocked (statement timeout 57014)",
+      "expected": "57014",
+      "actual": "57014",
+      "pass": true
+    }
+  ],
+  "measurements": {
+    "schema_change_matrix": {
+      "added_column": {
+        "beforeChange": "ready_for_deletion",
+        "finalStatus": "requires_review",
+        "detectedBy": [
+          "schema_or_graph_drift"
+        ],
+        "rowsDeleted": 0,
+        "frozenRows": 5235,
+        "fingerprintOnlyWouldStillDelete": 0
+      },
+      "removed_column": {
+        "beforeChange": "ready_for_deletion",
+        "finalStatus": "requires_review",
+        "detectedBy": [
+          "schema_or_graph_drift"
+        ],
+        "rowsDeleted": 0,
+        "frozenRows": 5235,
+        "fingerprintOnlyWouldStillDelete": 0
+      },
+      "renamed_column": {
+        "beforeChange": "ready_for_deletion",
+        "finalStatus": "requires_review",
+        "detectedBy": [
+          "schema_or_graph_drift"
+        ],
+        "rowsDeleted": 0,
+        "frozenRows": 5235,
+        "fingerprintOnlyWouldStillDelete": 5235
+      },
+      "changed_type": {
+        "beforeChange": "ready_for_deletion",
+        "finalStatus": "requires_review",
+        "detectedBy": [
+          "schema_or_graph_drift"
+        ],
+        "rowsDeleted": 0,
+        "frozenRows": 5235,
+        "fingerprintOnlyWouldStillDelete": 5235
+      },
+      "changed_constraint": {
+        "beforeChange": "ready_for_deletion",
+        "finalStatus": "requires_review",
+        "detectedBy": [
+          "schema_or_graph_drift"
+        ],
+        "rowsDeleted": 0,
+        "frozenRows": 5235,
+        "fingerprintOnlyWouldStillDelete": 5235
+      },
+      "changed_fk": {
+        "beforeChange": "ready_for_deletion",
+        "finalStatus": "requires_review",
+        "detectedBy": [
+          "schema_or_graph_drift"
+        ],
+        "rowsDeleted": 0,
+        "frozenRows": 5235,
+        "fingerprintOnlyWouldStillDelete": 5235
+      }
+    },
+    "changes_invisible_to_row_fingerprint_alone": [
+      "renamed_column",
+      "changed_type",
+      "changed_constraint",
+      "changed_fk"
+    ],
+    "app_read_blocked_ms": 2002
+  },
+  "notes": [
+    "A long export snapshot plus an application migration without lock_timeout stalls application traffic on that table. Exports must be short, and schema migrations should use lock_timeout."
+  ]
+}

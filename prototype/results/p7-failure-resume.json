@@ -1,0 +1,542 @@
+{
+  "id": "p7-failure-resume",
+  "title": "P7 — Failure / resume",
+  "label": "PROTOTYPE / SYNTHETIC DATA ONLY",
+  "ranAt": "2026-09-30T07:20:03.867Z",
+  "summary": {
+    "checks": 37,
+    "passed": 37,
+    "failed": 0
+  },
+  "checks": [
+    {
+      "name": "before_export: crash happened, duplicate job rejected, lease blocks 2nd worker",
+      "expected": [
+        true,
+        "23505",
+        true
+      ],
+      "actual": [
+        true,
+        "23505",
+        true
+      ],
+      "pass": true
+    },
+    {
+      "name": "before_export: resumed to completion, every table reconciles, no orphans",
+      "expected": [
+        "completed",
+        true,
+        0
+      ],
+      "actual": [
+        "completed",
+        true,
+        0
+      ],
+      "pass": true
+    },
+    {
+      "name": "before_export: rows removed from DB = rows the job reports deleted + rows its own crashed attempt deleted",
+      "expected": 3107,
+      "actual": 3107,
+      "pass": true
+    },
+    {
+      "name": "during_export: crash happened, duplicate job rejected, lease blocks 2nd worker",
+      "expected": [
+        true,
+        "23505",
+        true
+      ],
+      "actual": [
+        true,
+        "23505",
+        true
+      ],
+      "pass": true
+    },
+    {
+      "name": "during_export: resumed to completion, every table reconciles, no orphans",
+      "expected": [
+        "completed",
+        true,
+        0
+      ],
+      "actual": [
+        "completed",
+        true,
+        0
+      ],
+      "pass": true
+    },
+    {
+      "name": "during_export: rows removed from DB = rows the job reports deleted + rows its own crashed attempt deleted",
+      "expected": 3130,
+      "actual": 3130,
+      "pass": true
+    },
+    {
+      "name": "after_export_before_checkpoint: crash happened, duplicate job rejected, lease blocks 2nd worker",
+      "expected": [
+        true,
+        "23505",
+        true
+      ],
+      "actual": [
+        true,
+        "23505",
+        true
+      ],
+      "pass": true
+    },
+    {
+      "name": "after_export_before_checkpoint: resumed to completion, every table reconciles, no orphans",
+      "expected": [
+        "completed",
+        true,
+        0
+      ],
+      "actual": [
+        "completed",
+        true,
+        0
+      ],
+      "pass": true
+    },
+    {
+      "name": "after_export_before_checkpoint: rows removed from DB = rows the job reports deleted + rows its own crashed attempt deleted",
+      "expected": 3015,
+      "actual": 3015,
+      "pass": true
+    },
+    {
+      "name": "after_upload_checkpoint: crash happened, duplicate job rejected, lease blocks 2nd worker",
+      "expected": [
+        true,
+        "23505",
+        true
+      ],
+      "actual": [
+        true,
+        "23505",
+        true
+      ],
+      "pass": true
+    },
+    {
+      "name": "after_upload_checkpoint: resumed to completion, every table reconciles, no orphans",
+      "expected": [
+        "completed",
+        true,
+        0
+      ],
+      "actual": [
+        "completed",
+        true,
+        0
+      ],
+      "pass": true
+    },
+    {
+      "name": "after_upload_checkpoint: rows removed from DB = rows the job reports deleted + rows its own crashed attempt deleted",
+      "expected": 3170,
+      "actual": 3170,
+      "pass": true
+    },
+    {
+      "name": "during_verification: crash happened, duplicate job rejected, lease blocks 2nd worker",
+      "expected": [
+        true,
+        "23505",
+        true
+      ],
+      "actual": [
+        true,
+        "23505",
+        true
+      ],
+      "pass": true
+    },
+    {
+      "name": "during_verification: resumed to completion, every table reconciles, no orphans",
+      "expected": [
+        "completed",
+        true,
+        0
+      ],
+      "actual": [
+        "completed",
+        true,
+        0
+      ],
+      "pass": true
+    },
+    {
+      "name": "during_verification: rows removed from DB = rows the job reports deleted + rows its own crashed attempt deleted",
+      "expected": 3035,
+      "actual": 3035,
+      "pass": true
+    },
+    {
+      "name": "before_deletion: pre-crash run reaches ready_for_deletion",
+      "expected": "ready_for_deletion",
+      "actual": "ready_for_deletion",
+      "pass": true
+    },
+    {
+      "name": "before_deletion: crash happened, duplicate job rejected, lease blocks 2nd worker",
+      "expected": [
+        true,
+        "23505",
+        true
+      ],
+      "actual": [
+        true,
+        "23505",
+        true
+      ],
+      "pass": true
+    },
+    {
+      "name": "before_deletion: resumed to completion, every table reconciles, no orphans",
+      "expected": [
+        "completed",
+        true,
+        0
+      ],
+      "actual": [
+        "completed",
+        true,
+        0
+      ],
+      "pass": true
+    },
+    {
+      "name": "before_deletion: rows removed from DB = rows the job reports deleted + rows its own crashed attempt deleted",
+      "expected": 3025,
+      "actual": 3025,
+      "pass": true
+    },
+    {
+      "name": "mid_deletion_in_txn: pre-crash run reaches ready_for_deletion",
+      "expected": "ready_for_deletion",
+      "actual": "ready_for_deletion",
+      "pass": true
+    },
+    {
+      "name": "mid_deletion_in_txn: crash happened, duplicate job rejected, lease blocks 2nd worker",
+      "expected": [
+        true,
+        "23505",
+        true
+      ],
+      "actual": [
+        true,
+        "23505",
+        true
+      ],
+      "pass": true
+    },
+    {
+      "name": "mid_deletion_in_txn: resumed to completion, every table reconciles, no orphans",
+      "expected": [
+        "completed",
+        true,
+        0
+      ],
+      "actual": [
+        "completed",
+        true,
+        0
+      ],
+      "pass": true
+    },
+    {
+      "name": "mid_deletion_in_txn: rows removed from DB = rows the job reports deleted + rows its own crashed attempt deleted",
+      "expected": 3040,
+      "actual": 3040,
+      "pass": true
+    },
+    {
+      "name": "mid_deletion_after_commit: pre-crash run reaches ready_for_deletion",
+      "expected": "ready_for_deletion",
+      "actual": "ready_for_deletion",
+      "pass": true
+    },
+    {
+      "name": "mid_deletion_after_commit: crash happened, duplicate job rejected, lease blocks 2nd worker",
+      "expected": [
+        true,
+        "23505",
+        true
+      ],
+      "actual": [
+        true,
+        "23505",
+        true
+      ],
+      "pass": true
+    },
+    {
+      "name": "mid_deletion_after_commit: resumed to completion, every table reconciles, no orphans",
+      "expected": [
+        "completed",
+        true,
+        0
+      ],
+      "actual": [
+        "completed",
+        true,
+        0
+      ],
+      "pass": true
+    },
+    {
+      "name": "mid_deletion_after_commit: rows removed from DB = rows the job reports deleted + rows its own crashed attempt deleted",
+      "expected": 3245,
+      "actual": 3245,
+      "pass": true
+    },
+    {
+      "name": "after_deletion: pre-crash run reaches ready_for_deletion",
+      "expected": "ready_for_deletion",
+      "actual": "ready_for_deletion",
+      "pass": true
+    },
+    {
+      "name": "after_deletion: crash happened, duplicate job rejected, lease blocks 2nd worker",
+      "expected": [
+        true,
+        "23505",
+        true
+      ],
+      "actual": [
+        true,
+        "23505",
+        true
+      ],
+      "pass": true
+    },
+    {
+      "name": "after_deletion: resumed to completion, every table reconciles, no orphans",
+      "expected": [
+        "completed",
+        true,
+        0
+      ],
+      "actual": [
+        "completed",
+        true,
+        0
+      ],
+      "pass": true
+    },
+    {
+      "name": "after_deletion: rows removed from DB = rows the job reports deleted + rows its own crashed attempt deleted",
+      "expected": 3400,
+      "actual": 3400,
+      "pass": true
+    },
+    {
+      "name": "during_deletion_verification: pre-crash run reaches ready_for_deletion",
+      "expected": "ready_for_deletion",
+      "actual": "ready_for_deletion",
+      "pass": true
+    },
+    {
+      "name": "during_deletion_verification: crash happened, duplicate job rejected, lease blocks 2nd worker",
+      "expected": [
+        true,
+        "23505",
+        true
+      ],
+      "actual": [
+        true,
+        "23505",
+        true
+      ],
+      "pass": true
+    },
+    {
+      "name": "during_deletion_verification: resumed to completion, every table reconciles, no orphans",
+      "expected": [
+        "completed",
+        true,
+        0
+      ],
+      "actual": [
+        "completed",
+        true,
+        0
+      ],
+      "pass": true
+    },
+    {
+      "name": "during_deletion_verification: rows removed from DB = rows the job reports deleted + rows its own crashed attempt deleted",
+      "expected": 3080,
+      "actual": 3080,
+      "pass": true
+    },
+    {
+      "name": "kill switch: job stops in requires_review and deletes 0 rows",
+      "expected": [
+        "requires_review",
+        0
+      ],
+      "actual": [
+        "requires_review",
+        0
+      ],
+      "pass": true
+    },
+    {
+      "name": "deleteBatch refuses to run inside a caller's transaction and deletes nothing",
+      "expected": [
+        true,
+        0
+      ],
+      "actual": [
+        true,
+        0
+      ],
+      "pass": true
+    }
+  ],
+  "measurements": {
+    "failure_matrix": {
+      "before_export": {
+        "crashed": true,
+        "stateAtCrash": "exporting",
+        "rowsDeletedAtCrash": 0,
+        "duplicateJobRejected": true,
+        "secondWorkerBlockedByLease": true,
+        "finalStatus": "completed",
+        "exportAttempts": 1,
+        "rowsDeletedTotal": 3107,
+        "rowsCountedAsMissingOnRetriedBatches": 0,
+        "reconciles": true,
+        "orphans": 0
+      },
+      "during_export": {
+        "crashed": true,
+        "stateAtCrash": "exporting",
+        "rowsDeletedAtCrash": 0,
+        "duplicateJobRejected": true,
+        "secondWorkerBlockedByLease": true,
+        "finalStatus": "completed",
+        "exportAttempts": 2,
+        "rowsDeletedTotal": 3130,
+        "rowsCountedAsMissingOnRetriedBatches": 0,
+        "reconciles": true,
+        "orphans": 0
+      },
+      "after_export_before_checkpoint": {
+        "crashed": true,
+        "stateAtCrash": "exporting",
+        "rowsDeletedAtCrash": 0,
+        "duplicateJobRejected": true,
+        "secondWorkerBlockedByLease": true,
+        "finalStatus": "completed",
+        "exportAttempts": 2,
+        "rowsDeletedTotal": 3015,
+        "rowsCountedAsMissingOnRetriedBatches": 0,
+        "reconciles": true,
+        "orphans": 0
+      },
+      "after_upload_checkpoint": {
+        "crashed": true,
+        "stateAtCrash": "verifying",
+        "rowsDeletedAtCrash": 0,
+        "duplicateJobRejected": true,
+        "secondWorkerBlockedByLease": true,
+        "finalStatus": "completed",
+        "exportAttempts": 1,
+        "rowsDeletedTotal": 3170,
+        "rowsCountedAsMissingOnRetriedBatches": 0,
+        "reconciles": true,
+        "orphans": 0
+      },
+      "during_verification": {
+        "crashed": true,
+        "stateAtCrash": "verifying",
+        "rowsDeletedAtCrash": 0,
+        "duplicateJobRejected": true,
+        "secondWorkerBlockedByLease": true,
+        "finalStatus": "completed",
+        "exportAttempts": 1,
+        "rowsDeletedTotal": 3035,
+        "rowsCountedAsMissingOnRetriedBatches": 0,
+        "reconciles": true,
+        "orphans": 0
+      },
+      "before_deletion": {
+        "crashed": true,
+        "stateAtCrash": "deleting",
+        "rowsDeletedAtCrash": 0,
+        "duplicateJobRejected": true,
+        "secondWorkerBlockedByLease": true,
+        "finalStatus": "completed",
+        "exportAttempts": 1,
+        "rowsDeletedTotal": 3025,
+        "rowsCountedAsMissingOnRetriedBatches": 0,
+        "reconciles": true,
+        "orphans": 0
+      },
+      "mid_deletion_in_txn": {
+        "crashed": true,
+        "stateAtCrash": "deleting",
+        "rowsDeletedAtCrash": 1500,
+        "duplicateJobRejected": true,
+        "secondWorkerBlockedByLease": true,
+        "finalStatus": "completed",
+        "exportAttempts": 1,
+        "rowsDeletedTotal": 3040,
+        "rowsCountedAsMissingOnRetriedBatches": 0,
+        "reconciles": true,
+        "orphans": 0
+      },
+      "mid_deletion_after_commit": {
+        "crashed": true,
+        "stateAtCrash": "deleting",
+        "rowsDeletedAtCrash": 2000,
+        "duplicateJobRejected": true,
+        "secondWorkerBlockedByLease": true,
+        "finalStatus": "completed",
+        "exportAttempts": 1,
+        "rowsDeletedTotal": 3245,
+        "rowsCountedAsMissingOnRetriedBatches": 500,
+        "reconciles": true,
+        "orphans": 0
+      },
+      "after_deletion": {
+        "crashed": true,
+        "stateAtCrash": "deleting",
+        "rowsDeletedAtCrash": 3400,
+        "duplicateJobRejected": true,
+        "secondWorkerBlockedByLease": true,
+        "finalStatus": "completed",
+        "exportAttempts": 1,
+        "rowsDeletedTotal": 3400,
+        "rowsCountedAsMissingOnRetriedBatches": 0,
+        "reconciles": true,
+        "orphans": 0
+      },
+      "during_deletion_verification": {
+        "crashed": true,
+        "stateAtCrash": "verifying_deletion",
+        "rowsDeletedAtCrash": 3080,
+        "duplicateJobRejected": true,
+        "secondWorkerBlockedByLease": true,
+        "finalStatus": "completed",
+        "exportAttempts": 1,
+        "rowsDeletedTotal": 3080,
+        "rowsCountedAsMissingOnRetriedBatches": 0,
+        "reconciles": true,
+        "orphans": 0
+      }
+    }
+  },
+  "notes": []
+}

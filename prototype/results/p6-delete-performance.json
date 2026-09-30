@@ -1,0 +1,158 @@
+{
+  "id": "p6-delete-performance",
+  "title": "P6 — Delete performance",
+  "label": "PROTOTYPE / SYNTHETIC DATA ONLY",
+  "ranAt": "2026-09-30T07:18:52.478Z",
+  "summary": {
+    "checks": 9,
+    "passed": 9,
+    "failed": 0
+  },
+  "checks": [
+    {
+      "name": "batch 500: all 50000 frozen rows deleted",
+      "expected": 50000,
+      "actual": 50000,
+      "pass": true
+    },
+    {
+      "name": "batch 1000: all 50000 frozen rows deleted",
+      "expected": 50000,
+      "actual": 50000,
+      "pass": true
+    },
+    {
+      "name": "batch 2000: all 50000 frozen rows deleted",
+      "expected": 50000,
+      "actual": 50000,
+      "pass": true
+    },
+    {
+      "name": "batch 5000: all 50000 frozen rows deleted",
+      "expected": 50000,
+      "actual": 50000,
+      "pass": true
+    },
+    {
+      "name": "batch 10000: all 50000 frozen rows deleted",
+      "expected": 50000,
+      "actual": 50000,
+      "pass": true
+    },
+    {
+      "name": "batch blocked by an app row lock fails with lock_timeout (55P03)",
+      "expected": "55P03",
+      "actual": "55P03",
+      "pass": true
+    },
+    {
+      "name": "failed batch rolled back completely (0 of 2,000 deleted)",
+      "expected": 2000,
+      "actual": 2000,
+      "pass": true
+    },
+    {
+      "name": "retry after release deletes the whole batch",
+      "expected": 2000,
+      "actual": 2000,
+      "pass": true
+    },
+    {
+      "name": "re-running a committed batch is idempotent (0 more rows)",
+      "expected": 0,
+      "actual": 0,
+      "pass": true
+    }
+  ],
+  "measurements": {
+    "copy_setup_ms": 3988,
+    "table_rows": 869793,
+    "table_size_before": "90 MB",
+    "batch_size_results": [
+      {
+        "batchSize": 500,
+        "batches": 100,
+        "deleted": 50000,
+        "totalMs": 1392,
+        "rowsPerSec": 35920,
+        "txnMsP50": 8,
+        "txnMsP95": 52,
+        "txnMsMax": 76,
+        "walBytesPerBatch": 59408,
+        "appOps": 74,
+        "appLatencyMsP50": 2,
+        "appLatencyMsP95": 45,
+        "appLatencyMsMax": 66
+      },
+      {
+        "batchSize": 1000,
+        "batches": 50,
+        "deleted": 50000,
+        "totalMs": 1078,
+        "rowsPerSec": 46376,
+        "txnMsP50": 12,
+        "txnMsP95": 57,
+        "txnMsMax": 61,
+        "walBytesPerBatch": 115906,
+        "appOps": 53,
+        "appLatencyMsP50": 2,
+        "appLatencyMsP95": 45,
+        "appLatencyMsMax": 47
+      },
+      {
+        "batchSize": 2000,
+        "batches": 25,
+        "deleted": 50000,
+        "totalMs": 822,
+        "rowsPerSec": 60846,
+        "txnMsP50": 18,
+        "txnMsP95": 68,
+        "txnMsMax": 98,
+        "walBytesPerBatch": 167802,
+        "appOps": 38,
+        "appLatencyMsP50": 2,
+        "appLatencyMsP95": 53,
+        "appLatencyMsMax": 82
+      },
+      {
+        "batchSize": 5000,
+        "batches": 10,
+        "deleted": 50000,
+        "totalMs": 662,
+        "rowsPerSec": 75576,
+        "txnMsP50": 77,
+        "txnMsP95": 138,
+        "txnMsMax": 138,
+        "walBytesPerBatch": 365586,
+        "appOps": 27,
+        "appLatencyMsP50": 2,
+        "appLatencyMsP95": 62,
+        "appLatencyMsMax": 87
+      },
+      {
+        "batchSize": 10000,
+        "batches": 5,
+        "deleted": 50000,
+        "totalMs": 2401,
+        "rowsPerSec": 20828,
+        "txnMsP50": 480,
+        "txnMsP95": 570,
+        "txnMsMax": 570,
+        "walBytesPerBatch": 732262,
+        "appOps": 95,
+        "appLatencyMsP50": 2,
+        "appLatencyMsP95": 55,
+        "appLatencyMsMax": 215
+      }
+    ],
+    "lock_timeout_failure_ms": 2010,
+    "guard_overhead_10k_rows_ms": {
+      "pkOnly": 28,
+      "pkPlusFingerprint": 483
+    },
+    "dead_tuples_after": {
+      "n_dead_tup": "250054"
+    }
+  },
+  "notes": []
+}

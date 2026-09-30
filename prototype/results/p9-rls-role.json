@@ -1,0 +1,142 @@
+{
+  "id": "p9-rls-role",
+  "title": "P9 — RLS / archiver role",
+  "label": "PROTOTYPE / SYNTHETIC DATA ONLY",
+  "ranAt": "2026-09-30T07:20:12.972Z",
+  "summary": {
+    "checks": 18,
+    "passed": 18,
+    "failed": 0
+  },
+  "checks": [
+    {
+      "name": "postgres (non-superuser) can create a LOGIN role",
+      "expected": "ok",
+      "actual": "ok",
+      "pass": true
+    },
+    {
+      "name": "role-level timeouts apply on login",
+      "expected": {
+        "st": "10min",
+        "lt": "2s"
+      },
+      "actual": {
+        "st": "10min",
+        "lt": "2s"
+      },
+      "pass": true
+    },
+    {
+      "name": "SELECT visibility without RLS = full table",
+      "expected": 20000,
+      "actual": 20000,
+      "pass": true
+    },
+    {
+      "name": "INSERT denied",
+      "expected": "42501",
+      "actual": "42501",
+      "pass": true
+    },
+    {
+      "name": "UPDATE denied",
+      "expected": "42501",
+      "actual": "42501",
+      "pass": true
+    },
+    {
+      "name": "TRUNCATE denied",
+      "expected": "42501",
+      "actual": "42501",
+      "pass": true
+    },
+    {
+      "name": "DDL denied (ALTER TABLE)",
+      "expected": "42501",
+      "actual": "42501",
+      "pass": true
+    },
+    {
+      "name": "unrelated table: SELECT denied",
+      "expected": "42501",
+      "actual": "42501",
+      "pass": true
+    },
+    {
+      "name": "unrelated table: DELETE denied",
+      "expected": "42501",
+      "actual": "42501",
+      "pass": true
+    },
+    {
+      "name": "cannot create roles or escalate",
+      "expected": "42501",
+      "actual": "42501",
+      "pass": true
+    },
+    {
+      "name": "catalog introspection (planning) works as archiver",
+      "expected": [],
+      "actual": [],
+      "pass": true
+    },
+    {
+      "name": "archiver can export and exact-delete with only SELECT + DELETE",
+      "expected": 1032,
+      "actual": 1032,
+      "pass": true
+    },
+    {
+      "name": "RLS silently hides rows from the archiver (no error)",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "name": "preflight blocks the job: RLS enabled and role does not bypass it",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "name": "without preflight the candidate would silently omit hidden rows (whole days no longer whole)",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "name": "RLS with policies only for app roles → archiver sees 0 rows",
+      "expected": 0,
+      "actual": 0,
+      "pass": true
+    },
+    {
+      "name": "BYPASSRLS archiver sees the full table under RLS",
+      "expected": 18968,
+      "actual": 18968,
+      "pass": true
+    },
+    {
+      "name": "BYPASSRLS does not grant other privileges (still no UPDATE)",
+      "expected": "42501",
+      "actual": "42501",
+      "pass": true
+    }
+  ],
+  "measurements": {
+    "auth_schema_present_in_image": false,
+    "rls_partial_visibility": {
+      "trueRows": 18968,
+      "archiverSees": 9493,
+      "catalogEstimateVisibleToArchiver": 20000
+    },
+    "rls_candidate_undercount": {
+      "selectedByArchiver": 1024,
+      "trueRowsInSameDays": 2061,
+      "archiverSeesInSameDays": 1024
+    },
+    "create_role_with_BYPASSRLS_as_postgres": "ok"
+  },
+  "notes": []
+}

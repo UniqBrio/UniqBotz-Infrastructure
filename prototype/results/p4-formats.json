@@ -1,0 +1,126 @@
+{
+  "id": "p4-formats",
+  "title": "P4 — Archive format comparison",
+  "label": "PROTOTYPE / SYNTHETIC DATA ONLY",
+  "ranAt": "2026-09-30T07:18:14.714Z",
+  "summary": {
+    "checks": 4,
+    "passed": 4,
+    "failed": 0
+  },
+  "checks": [
+    {
+      "name": "CSV.GZ round-trip exact for every column type",
+      "expected": {},
+      "actual": {},
+      "pass": true
+    },
+    {
+      "name": "CSV.GZ restores every row",
+      "expected": 100000,
+      "actual": 100000,
+      "pass": true
+    },
+    {
+      "name": "Parquet (typical typed JS mapping) is NOT lossless",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "name": "XLSX cannot hold large text cells (Excel 32,767-char limit)",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    }
+  ],
+  "measurements": {
+    "fidelity_rows": 100000,
+    "fidelity_in_db_row_bytes": 43948160,
+    "narrow_rows": 750000,
+    "narrow_in_db_row_bytes": 57599991,
+    "results": {
+      "fidelity": {
+        "csv.gz": {
+          "bytes": 7992597,
+          "exportMs": 1419,
+          "restoreMs": 3402,
+          "restored": 100000,
+          "total": 100000,
+          "mismatchedColumns": {}
+        },
+        "jsonl.gz": {
+          "bytes": 8438943,
+          "exportMs": 2500,
+          "restoreMs": 23749,
+          "restored": 100000,
+          "total": 100000,
+          "mismatchedColumns": {}
+        },
+        "parquet": {
+          "bytes": 9541900,
+          "exportMs": 5194,
+          "restoreMs": 6225,
+          "restored": 100000,
+          "total": 100000,
+          "mismatchedColumns": {
+            "n_exact": 98970,
+            "n_any": 66666,
+            "ts": 99900,
+            "ts_local": 100000,
+            "j": 100000
+          }
+        },
+        "xlsx": {
+          "bytes": 15337867,
+          "exportMs": 7632,
+          "rows": 100000,
+          "cellsOverExcelLimit": 1000,
+          "restore": "not an archival format; not restored"
+        }
+      },
+      "narrow": {
+        "csv.gz": {
+          "bytes": 9033998,
+          "exportMs": 1182,
+          "restoreMs": 1945,
+          "restored": 750000,
+          "total": 750000,
+          "mismatchedColumns": {}
+        },
+        "jsonl.gz": {
+          "bytes": 10298344,
+          "exportMs": 3072,
+          "restoreMs": 18473,
+          "restored": 750000,
+          "total": 750000,
+          "mismatchedColumns": {}
+        },
+        "parquet": {
+          "bytes": 9017563,
+          "exportMs": 6198,
+          "restoreMs": 10655,
+          "restored": 750000,
+          "total": 750000,
+          "mismatchedColumns": {}
+        },
+        "xlsx": {
+          "bytes": 28057042,
+          "exportMs": 10803,
+          "rows": 750000,
+          "cellsOverExcelLimit": 0,
+          "restore": "not an archival format; not restored"
+        }
+      }
+    },
+    "jsonl_mismatched_columns": {},
+    "parquet_mismatched_columns": {
+      "n_exact": 98970,
+      "n_any": 66666,
+      "ts": 99900,
+      "ts_local": 100000,
+      "j": 100000
+    }
+  },
+  "notes": []
+}

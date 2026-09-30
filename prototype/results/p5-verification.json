@@ -1,0 +1,210 @@
+{
+  "id": "p5-verification",
+  "title": "P5 — Archive verification",
+  "label": "PROTOTYPE / SYNTHETIC DATA ONLY",
+  "ranAt": "2026-09-30T07:18:36.596Z",
+  "summary": {
+    "checks": 12,
+    "passed": 12,
+    "failed": 0
+  },
+  "checks": [
+    {
+      "name": "pristine archive passes V1–V6",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "name": "pristine archive passes V1–V8 (incl. restore + fingerprint)",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "name": "1 archive contents: flipped bytes inside data.csv.gz → VERIFICATION FAILED, DELETE = 0",
+      "expected": {
+        "passed": false,
+        "deleted": 0
+      },
+      "actual": {
+        "passed": false,
+        "deleted": 0
+      },
+      "pass": true
+    },
+    {
+      "name": "2 checksum: control-plane sha256 for data file is wrong → VERIFICATION FAILED, DELETE = 0",
+      "expected": {
+        "passed": false,
+        "deleted": 0
+      },
+      "actual": {
+        "passed": false,
+        "deleted": 0
+      },
+      "pass": true
+    },
+    {
+      "name": "3 row count: one row removed, archive re-gzipped and re-hashed consistently → VERIFICATION FAILED, DELETE = 0",
+      "expected": {
+        "passed": false,
+        "deleted": 0
+      },
+      "actual": {
+        "passed": false,
+        "deleted": 0
+      },
+      "pass": true
+    },
+    {
+      "name": "4 one row altered (value changed), archive re-gzipped and re-hashed consistently → VERIFICATION FAILED, DELETE = 0",
+      "expected": {
+        "passed": false,
+        "deleted": 0
+      },
+      "actual": {
+        "passed": false,
+        "deleted": 0
+      },
+      "pass": true
+    },
+    {
+      "name": "4b one row altered, checksums NOT updated → VERIFICATION FAILED, DELETE = 0",
+      "expected": {
+        "passed": false,
+        "deleted": 0
+      },
+      "actual": {
+        "passed": false,
+        "deleted": 0
+      },
+      "pass": true
+    },
+    {
+      "name": "5 metadata: manifest boundary edited → VERIFICATION FAILED, DELETE = 0",
+      "expected": {
+        "passed": false,
+        "deleted": 0
+      },
+      "actual": {
+        "passed": false,
+        "deleted": 0
+      },
+      "pass": true
+    },
+    {
+      "name": "5b metadata: manifest row count edited AND control-plane manifest hash re-recorded → VERIFICATION FAILED, DELETE = 0",
+      "expected": {
+        "passed": false,
+        "deleted": 0
+      },
+      "actual": {
+        "passed": false,
+        "deleted": 0
+      },
+      "pass": true
+    },
+    {
+      "name": "6 missing object: keys file deleted → VERIFICATION FAILED, DELETE = 0",
+      "expected": {
+        "passed": false,
+        "deleted": 0
+      },
+      "actual": {
+        "passed": false,
+        "deleted": 0
+      },
+      "pass": true
+    },
+    {
+      "name": "rows in source unchanged after all gate attempts",
+      "expected": 994945,
+      "actual": 994945,
+      "pass": true
+    },
+    {
+      "name": "pristine archive: gate opens and exactly the frozen rows are deleted (synthetic data, committed)",
+      "expected": 125152,
+      "actual": 125152,
+      "pass": true
+    }
+  ],
+  "measurements": {
+    "selection": {
+      "oldest": "2022-12-03",
+      "boundary": "2024-05-09",
+      "total": 125152,
+      "beforeFinal": 124614,
+      "finalDay": 538
+    },
+    "export_125k_ms": 1789,
+    "archive_bytes": {
+      "data": 1845730,
+      "keys": 4853609
+    },
+    "verify_V1_V6_ms": 1040,
+    "verify_V1_V8_ms": 2036,
+    "corruption_matrix": {
+      "1 archive contents: flipped bytes inside data.csv.gz": {
+        "failedChecks": [
+          "V2b",
+          "V3"
+        ],
+        "deleted": 0
+      },
+      "2 checksum: control-plane sha256 for data file is wrong": {
+        "failedChecks": [
+          "V2b"
+        ],
+        "deleted": 0
+      },
+      "3 row count: one row removed, archive re-gzipped and re-hashed consistently": {
+        "failedChecks": [
+          "V4",
+          "V5",
+          "V8"
+        ],
+        "deleted": 0
+      },
+      "4 one row altered (value changed), archive re-gzipped and re-hashed consistently": {
+        "failedChecks": [
+          "V8"
+        ],
+        "deleted": 0
+      },
+      "4b one row altered, checksums NOT updated": {
+        "failedChecks": [
+          "V1b",
+          "V2b",
+          "V8"
+        ],
+        "deleted": 0
+      },
+      "5 metadata: manifest boundary edited": {
+        "failedChecks": [
+          "V2a",
+          "V6c"
+        ],
+        "deleted": 0
+      },
+      "5b metadata: manifest row count edited AND control-plane manifest hash re-recorded": {
+        "failedChecks": [
+          "V6a",
+          "V6d"
+        ],
+        "deleted": 0
+      },
+      "6 missing object: keys file deleted": {
+        "failedChecks": [
+          "V1"
+        ],
+        "deleted": 0
+      }
+    },
+    "corruptions_caught_only_by_V8_restore_fingerprint": [
+      "4 one row altered (value changed), archive re-gzipped and re-hashed consistently"
+    ]
+  },
+  "notes": []
+}

@@ -1,0 +1,98 @@
+[
+  {
+    "id": "env",
+    "title": "Test environment",
+    "checks": 0,
+    "passed": 0,
+    "failed": 0,
+    "ranAt": "2026-09-30T07:15:42.238Z"
+  },
+  {
+    "id": "late-data",
+    "title": "Late / backdated records during a job",
+    "checks": 9,
+    "passed": 9,
+    "failed": 0,
+    "ranAt": "2026-09-30T07:20:36.918Z"
+  },
+  {
+    "id": "p1-freezing",
+    "title": "P1 — Exact candidate freezing",
+    "checks": 15,
+    "passed": 15,
+    "failed": 0,
+    "ranAt": "2026-09-30T07:16:08.366Z"
+  },
+  {
+    "id": "p10-storage",
+    "title": "P10 — Database storage after DELETE",
+    "checks": 8,
+    "passed": 8,
+    "failed": 0,
+    "ranAt": "2026-09-30T07:20:29.978Z"
+  },
+  {
+    "id": "p2-whole-day",
+    "title": "P2 — Whole-day target logic",
+    "checks": 17,
+    "passed": 17,
+    "failed": 0,
+    "ranAt": "2026-09-30T07:16:10.174Z"
+  },
+  {
+    "id": "p3-fk-graph",
+    "title": "P3 — Multi-table / FK dependencies",
+    "checks": 23,
+    "passed": 23,
+    "failed": 0,
+    "ranAt": "2026-09-30T07:16:16.559Z"
+  },
+  {
+    "id": "p4-formats",
+    "title": "P4 — Archive format comparison",
+    "checks": 4,
+    "passed": 4,
+    "failed": 0,
+    "ranAt": "2026-09-30T07:18:14.714Z"
+  },
+  {
+    "id": "p5-verification",
+    "title": "P5 — Archive verification",
+    "checks": 12,
+    "passed": 12,
+    "failed": 0,
+    "ranAt": "2026-09-30T07:18:36.596Z"
+  },
+  {
+    "id": "p6-delete-performance",
+    "title": "P6 — Delete performance",
+    "checks": 9,
+    "passed": 9,
+    "failed": 0,
+    "ranAt": "2026-09-30T07:18:52.478Z"
+  },
+  {
+    "id": "p7-failure-resume",
+    "title": "P7 — Failure / resume",
+    "checks": 37,
+    "passed": 37,
+    "failed": 0,
+    "ranAt": "2026-09-30T07:20:03.867Z"
+  },
+  {
+    "id": "p8-schema-change",
+    "title": "P8 — Schema change",
+    "checks": 9,
+    "passed": 9,
+    "failed": 0,
+    "ranAt": "2026-09-30T07:20:11.774Z"
+  },
+  {
+    "id": "p9-rls-role",
+    "title": "P9 — RLS / archiver role",
+    "checks": 18,
+    "passed": 18,
+    "failed": 0,
+    "ranAt": "2026-09-30T07:20:12.972Z"
+  }
+]

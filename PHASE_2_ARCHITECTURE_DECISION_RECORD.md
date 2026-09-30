@@ -44,6 +44,7 @@
 23. [Phase 3 implementation plan](#23-phase-3-implementation-plan)
 - [Appendix A — Phase 1 contract changes implied by this record](#appendix-a--phase-1-contract-changes-implied-by-this-record)
 - [Appendix B — Sources](#appendix-b--sources)
+- [Phase 3A Validation Status](#phase-3a-validation-status)
 
 ---
 
@@ -1624,3 +1625,41 @@ Accessed 2026-09-30.
 - CERT-In Directions 28.04.2022 — https://www.cert-in.org.in/PDF/CERT-In_Directions_70B_28.04.2022.pdf
 
 **PostgreSQL** (general behaviour cited as [PG]): official documentation on MVCC, `VACUUM`, `pg_constraint`, `COPY`, transaction isolation, `session_replication_role`.
+
+---
+
+## Phase 3A Validation Status
+
+Added 2026-09-30. The decisions above are **not rewritten**. Full evidence is in
+[`PHASE_3A_TECHNICAL_VALIDATION_REPORT.md`](./PHASE_3A_TECHNICAL_VALIDATION_REPORT.md) (code: `prototype/`, results: `prototype/results/`).
+
+**Test conditions:** synthetic data only, on the official `supabase/postgres:17.6.1.066` image run locally (0.5 CPU / 512 MB). **No hosted Supabase project was used.** 161/161 prototype checks passed.
+
+### Prototype findings (measured)
+
+| Area | Finding | Effect on this ADR |
+|---|---|---|
+| Schema drift (§2, A-2) | Row fingerprint misses rename / type / constraint / FK changes | A-2 **partially disproved**. A schema+graph hash check before deletion is mandatory. |
+| Freeze (D-03) | Selection outside the snapshot disagrees with frozen rows under concurrent inserts | **Refined:** whole-day selection runs inside the freeze snapshot |
+| Verification (D-13) | A consistently re-hashed altered row is caught only by restore + fingerprint (V8) | **Changed:** V8 is part of the gate on every job, not sampled (~1 s per 125k rows) |
+| RLS (§16.2) | RLS silently hides rows; post-deletion reconciliation is blind too | Catalog RLS preflight mandatory; BYPASSRLS role or explicit policies |
+| Space (§7.4) | DELETE never shrinks the DB; reuse depends on vacuum timing; VACUUM FULL blocks reads | Explicit `VACUUM (ANALYZE)` after each job; VACUUM FULL stays manual |
+| Deletion (§11) | Nested `BEGIN` let the deleter commit a caller's transaction | Deleter owns its transaction; nested use refused |
+| Batches (D-14) | 2,000 comfortable, 10,000 degrades sharply | Default 2,000, cap 5,000 (re-measure on hosted) |
+| Format (D-12) | CSV.GZ exact and fastest; typical JS Parquet mapping lossy | Confirmed |
+| FK groups (D-08), leases/states (D-18/D-19), straggler pickup (D-05), whole-day rule (§3) | Behaved as designed | Confirmed |
+
+### Still architecture assumptions (not yet validated)
+
+- Hosted Supabase:
+  - Supavisor session-mode login with a custom role over IPv4
+  - hosted BYPASSRLS
+  - Nano timings
+  - read-only enforcement
+  - egress
+- Object storage provider behaviour (P-7).
+- Real application schemas (P-5).
+- Grace values (D-07).
+- Monitoring and count estimates (D-15, D-21).
+- Authentication (D-20).
+- All business and legal questions in §21.2 remain **UNDECIDED**.

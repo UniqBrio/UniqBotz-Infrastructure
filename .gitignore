@@ -9,3 +9,7 @@ next-env.d.ts
 !.env.example
 .DS_Store
 npm-debug.log*
+# Phase 3A prototype artifacts (synthetic data only)
+prototype/node_modules/
+prototype/.archive-store/
+prototype/.scratch/
