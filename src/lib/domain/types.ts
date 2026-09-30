@@ -90,8 +90,13 @@ export interface ThresholdStep {
 /** A table snapshot enriched with derived monitoring information. */
 export interface TableHealth extends TableSnapshot {
   severity: Severity;
-  /** Average records added per day across the last six months. */
-  avgDailyGrowth6m: number;
+  /** Average records added per day across the last six months; null = INSUFFICIENT HISTORY (never inferred). */
+  avgDailyGrowth6m: number | null;
+  growthStatus?: "measured" | "insufficient_history";
+  growthNote?: string;
+  /** Whether rowCount is an exact count or a catalog estimate (live mode). */
+  rowCountKind?: "exact" | "estimate";
+  deadTuples?: number | null;
   nextThreshold: ThresholdStep | null;
   /** Records until nextThreshold is reached (null when above HIGH). */
   recordsRemaining: number | null;
@@ -114,6 +119,8 @@ export interface ApplicationHealth {
   tableCount: number;
   largestTable: TableHealth | null;
   totalAvgDailyGrowth: number;
+  /** True when at least one table has INSUFFICIENT HISTORY, so the total is a lower bound. */
+  growthIncomplete?: boolean;
   tablesNeedingReview: number;
   tablesAtOrAboveLow: number;
 }
@@ -164,6 +171,11 @@ export interface ArchiveCandidate {
   /** Previous persisted archive boundary; the preview starts the day after. */
   previousBoundary: ISODate | null;
   generatedAt: ISODateTime;
+  /** Live previews: rows NOT in the candidate and why. */
+  excluded?: { reason: string; rows: number; detail: string }[];
+  /** Live previews: computed read-only by the worker. */
+  readOnly?: boolean;
+  blocking?: string[];
 }
 
 /** Result of the day-wise cumulative selection rule. */
@@ -186,14 +198,20 @@ export interface WholeDaySelection {
 /* ------------------------------------------------------------------ */
 
 export type ArchiveJobStatus =
+  | "queued"
   | "preparing"
   | "selecting"
   | "exporting"
   | "verifying"
   | "ready_for_deletion"
+  | "deletion_approved"
   | "deleting"
+  | "verifying_deletion"
+  | "waiting_retry"
   | "completed"
+  | "completed_with_exceptions"
   | "failed"
+  | "cancelled"
   | "requires_review";
 
 export type PipelineStepKey =
@@ -308,6 +326,27 @@ export interface Alert {
 /* ------------------------------------------------------------------ */
 
 export type AuditAction =
+  | "application_registered"
+  | "discovery_completed"
+  | "health_collected"
+  | "collection_failed"
+  | "policy_defaulted"
+  | "candidate_preview"
+  | "job_created"
+  | "job_duplicate_rejected"
+  | "candidate_selected"
+  | "candidates_frozen"
+  | "archive_created"
+  | "deletion_approved"
+  | "deletion_attempted"
+  | "deletion_blocked"
+  | "deletion_batch_completed"
+  | "deletion_verified"
+  | "job_retry_scheduled"
+  | "job_resumed"
+  | "job_requires_review"
+  | "lease_takeover"
+  | "operator_action"
   | "policy_created"
   | "policy_changed"
   | "table_discovered"
@@ -321,7 +360,7 @@ export type AuditAction =
   | "alert_sent"
   | "settings_changed";
 
-export type AuditResult = "success" | "failure" | "blocked" | "simulated";
+export type AuditResult = "success" | "failure" | "blocked" | "simulated" | "info";
 
 export interface AuditEntry {
   id: string;
@@ -329,7 +368,7 @@ export interface AuditEntry {
   applicationId: ApplicationId | null;
   action: AuditAction;
   tableName: string | null;
-  actor: { type: "user" | "system"; name: string };
+  actor: { type: "user" | "system" | "worker"; name: string };
   result: AuditResult;
   detail: string | null;
   jobId: string | null;
@@ -342,6 +381,8 @@ export interface AuditEntry {
 export interface InfrastructureSettings {
   recordThresholds: RecordThresholds;
   capacityThresholdsPct: CapacityThresholdsPct;
+  /** false until the business confirms capacity thresholds (shown as NOT FINAL). */
+  capacityThresholdsFinal?: boolean;
   defaultArchiveTarget: number;
   notifications: {
     whatsappNumber: string;
@@ -351,8 +392,8 @@ export interface InfrastructureSettings {
     notifyOnRecovery: boolean;
   };
   safety: {
-    /** Days of recent data held back beyond the protected period (late/backdated writes). */
-    gracePeriodDays: number;
+    /** Days of recent data held back beyond the protected period (late/backdated writes). null = not yet decided. */
+    gracePeriodDays: number | null;
     /** Hard gate — cannot be disabled. Typed as `true` so the UI cannot express "off". */
     archiveVerificationRequired: true;
     deletionBatchSize: number;
@@ -361,4 +402,12 @@ export interface InfrastructureSettings {
   archiveFormat: "csv.gz" | "jsonl.gz" | "parquet";
   /** Days after discovery that a table is flagged as "new". */
   newTableWindowDays: number;
+  /** Live mode only: effective runtime safety state reported by the control plane (read-only). */
+  runtime?: {
+    allowDeletion: boolean;
+    deletionKillSwitch: boolean;
+    schedulingEnabled: boolean;
+    notificationsEnabled: boolean;
+    policyEditing: "prototype" | "disabled_until_auth";
+  };
 }

@@ -2,29 +2,37 @@
   "name": "uniqbotz-infrastructure",
   "version": "0.1.0",
   "private": true,
-  "description": "UniqBotz Infrastructure — central data retention & archive control plane (Phase 1: UI prototype on mock data)",
+  "description": "UniqBotz Infrastructure — central data retention & archive control plane (Phase 3B: control plane + read-only live monitoring; deletion disabled)",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
+    "csv-parse": "^7.0.3",
     "lucide-react": "^1.48.0",
     "next": "16.3.6",
+    "pg": "^8.23.0",
+    "pg-copy-streams": "^7.0.0",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^22",
+    "@types/pg": "^8.23.1",
+    "@types/pg-copy-streams": "^1.2.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.6",
     "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.15",
     "typescript": "5.9.3",
     "vitest": "^3"
   }

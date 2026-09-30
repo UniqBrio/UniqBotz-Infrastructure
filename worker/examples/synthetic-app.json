@@ -1,0 +1,23 @@
+{
+  "id": "synthetic-gym",
+  "name": "Synthetic Gym (local)",
+  "supabaseProjectRef": null,
+  "environment": "synthetic",
+  "status": "active",
+  "timeZone": "Asia/Kolkata",
+  "enabled": true,
+  "capabilities": { "monitoring": true, "archive": false },
+  "databaseCapacityMb": 500,
+  "connections": {
+    "monitor": {
+      "purpose": "monitor",
+      "host": "127.0.0.1",
+      "port": 54329,
+      "database": "synthetic_app",
+      "user": "p3b_monitor",
+      "passwordRef": "env:SYNTH_MONITOR_PASSWORD",
+      "sslMode": "disable",
+      "statementTimeoutMs": 30000
+    }
+  }
+}

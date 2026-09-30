@@ -1663,3 +1663,14 @@ Added 2026-09-30. The decisions above are **not rewritten**. Full evidence is in
 - Monitoring and count estimates (D-15, D-21).
 - Authentication (D-20).
 - All business and legal questions in §21.2 remain **UNDECIDED**.
+
+## Phase 3B Implementation Status
+
+Phase 3B implemented Option 2 (central external worker plus a separate control plane) with **read-only** live monitoring and
+`ARCHIVE_AND_VERIFY_ONLY` jobs. The deletion engine follows §11 but is **disabled**:
+
+- `ALLOW_DELETION=false` by default;
+- kill switch ON by default;
+- only `synthetic` environments allow-listed.
+
+Scheduling and notifications are constrained off. Hosted-Supabase validation is still outstanding. Details, and the ordered prerequisites before any production deletion, are in `PHASE_3B_IMPLEMENTATION_RECORD.md`.

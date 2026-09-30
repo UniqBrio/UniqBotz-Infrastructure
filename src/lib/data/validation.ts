@@ -33,7 +33,7 @@ export function validateSettings(s: InfrastructureSettings): Record<string, stri
   if (s.notifications.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.notifications.email))
     errors.email = "Enter a valid email address or leave blank.";
   if (!(s.notifications.duplicateSuppressionHours >= 1)) errors.duplicateSuppressionHours = "Must be at least 1 hour.";
-  if (!(s.safety.gracePeriodDays >= 0)) errors.gracePeriodDays = "Grace period cannot be negative.";
+  if (s.safety.gracePeriodDays !== null && !(s.safety.gracePeriodDays >= 0)) errors.gracePeriodDays = "Grace period cannot be negative.";
   if (!(s.safety.deletionBatchSize >= 100 && s.safety.deletionBatchSize <= 50_000))
     errors.deletionBatchSize = "Batch size must be between 100 and 50,000.";
   return errors;

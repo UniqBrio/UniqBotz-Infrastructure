@@ -94,9 +94,13 @@ export function RetentionPolicyEditor({
       description={`${appName} · Retention policy`}
       footer={
         <>
-          <span className="mr-auto self-center text-[11px] text-ink-3">Saves to local mock state only.</span>
+          <span className="mr-auto self-center text-[11px] text-ink-3">
+            {source.mode === "live"
+              ? "Read-only: policy editing requires authentication (not implemented yet). Operators use the worker CLI."
+              : "Saves to local mock state only."}
+          </span>
           <Button onClick={onClose}>Close</Button>
-          <Button variant="primary" onClick={save} disabled={saving}>
+          <Button variant="primary" onClick={save} disabled={saving || source.mode === "live"}>
             {saving ? "Saving…" : "Save policy"}
           </Button>
         </>

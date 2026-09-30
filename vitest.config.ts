@@ -7,6 +7,8 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["src/**/*.test.ts"],
+    // Unit tests only (no database). Integration tests: vitest.integration.config.ts / `npm run test:integration`.
+    include: ["src/**/*.test.ts", "worker/**/*.test.ts"],
+    exclude: ["**/node_modules/**", "**/*.int.test.ts"],
   },
 });

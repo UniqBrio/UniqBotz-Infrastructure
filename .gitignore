@@ -13,3 +13,5 @@ npm-debug.log*
 prototype/node_modules/
 prototype/.archive-store/
 prototype/.scratch/
+# Phase 3B worker local archive store (synthetic test destination)
+.archive-store/

@@ -4,9 +4,10 @@ Central, internal control plane for **data retention and archival** across UniqB
 (RosiFit, UniqBrio, Jalsa Restaurant and future products). Each application is an independent
 Supabase project with its own schema; this dashboard monitors them all from one place.
 
-> **Phase 1 — UI prototype.** Everything runs on typed mock data. No Supabase project, database,
-> object storage, worker, queue, scheduler, WhatsApp or email integration is connected, and no
-> destructive operation is possible. Deletion confirmation is simulated and always deletes 0 records.
+> **Status — Phase 3B.** Control plane + **read-only** live monitoring + archive-and-verify worker.
+> **Production deletion, automated scheduling and notifications are DISABLED.** By default the UI still runs
+> on typed mock data (`NEXT_PUBLIC_INFRA_DATA_SOURCE=live` switches it to the read-only control-plane API).
+> See [Phase 3B](#phase-3b-control-plane--read-only-live-monitoring).
 
 ## Stack
 
@@ -19,7 +20,8 @@ npm install
 npm run dev        # http://localhost:3000
 npm run lint
 npm run typecheck
-npm test
+npm test                  # unit tests (no database)
+npm run test:integration  # worker/control-plane tests on the local Supabase Postgres image (synthetic)
 npm run build
 ```
 
@@ -106,3 +108,33 @@ The critical Phase 2 assumptions were prototyped on a local copy of the official
 **synthetic data only** (`prototype/`, reproducible with `prototype/scripts/run-all.sh`). All 161 checks passed.
 Several findings refine the architecture; see
 [`PHASE_3A_TECHNICAL_VALIDATION_REPORT.md`](./PHASE_3A_TECHNICAL_VALIDATION_REPORT.md). Hosted-Supabase behaviour is not yet validated.
+
+## Phase 3B: Control Plane + Read-Only Live Monitoring
+
+```
+READ-ONLY MONITORING: IMPLEMENTED · ARCHIVE-AND-VERIFY: IMPLEMENTED/TESTED
+PRODUCTION DELETION: DISABLED · AUTOMATED SCHEDULING: DISABLED · PRODUCTION NOTIFICATIONS: DISABLED
+```
+
+- **Control plane** (`worker/controlplane/migrations/`): Postgres schema `control` with 19 tables.
+  - Kill switch defaults to ON.
+  - No default grace period.
+  - Notifications and scheduling are CHECK-constrained off.
+  - The audit log is append-only.
+  - Connection passwords must be `env:NAME` references.
+- **Worker** (`worker/`, operator CLI `npx tsx worker/cli.ts …`, manual only). It does:
+  - read-only discovery and health collection;
+  - six-month growth, reported as INSUFFICIENT HISTORY when it cannot be proven;
+  - read-only candidate previews;
+  - `ARCHIVE_AND_VERIFY_ONLY` jobs: freeze → export → full restore-and-fingerprint verification → stop at `ready_for_deletion`.
+- **Deletion:** the engine exists but is disabled.
+  - `ALLOW_DELETION=false` by default, the database kill switch is ON, and only `synthetic` environments are allow-listed (`production` is rejected).
+  - It was exercised only on throwaway local synthetic databases in tests.
+- **Dashboard live mode:** `NEXT_PUBLIC_INFRA_DATA_SOURCE=live` plus the server-side `CONTROL_PLANE_DATABASE_URL`.
+  - The browser talks to GET-only `/api/infra/*`, which reads the control plane in a read-only session. Writes return 403.
+  - The web tier never connects to application databases or sees their credentials.
+- **Tests:** 64 unit (`npm test`) and 45 integration (`npm run test:integration`, needs `prototype/scripts/start-db.sh`). Phase 3A's 161 checks still pass.
+- **Hosted Supabase:** not validated. No disposable project was available, and none was created.
+
+Details, limitations, unresolved decisions and the exact steps before any production deletion:
+[`PHASE_3B_IMPLEMENTATION_RECORD.md`](./PHASE_3B_IMPLEMENTATION_RECORD.md).

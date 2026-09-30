@@ -59,6 +59,31 @@ export function ArchiveCandidateCard({ candidate, appName }: { candidate: Archiv
       }
     >
       <div className="space-y-4">
+        {candidate.readOnly && (
+          <p className="text-[11px] font-semibold tracking-wide text-ink-3">
+            READ ONLY · computed by the worker in a read-only snapshot at {formatDate(candidate.generatedAt)} · no job created, nothing frozen
+          </p>
+        )}
+        {candidate.blocking && candidate.blocking.length > 0 && (
+          <div className="rounded-md border border-high-line bg-high-soft px-3 py-2 text-xs text-high-ink">
+            <strong>Not archivable as configured:</strong>
+            <ul className="mt-1 list-disc pl-4">{candidate.blocking.map((b) => <li key={b}>{b}</li>)}</ul>
+          </div>
+        )}
+        {candidate.excluded && candidate.excluded.length > 0 && (
+          <div className="rounded-md border border-line bg-surface-2 px-3 py-2 text-xs text-ink-2">
+            <strong className="text-ink">Records excluded from this candidate</strong>
+            <ul className="mt-1 space-y-0.5">
+              {candidate.excluded.map((x) => (
+                <li key={x.reason} className="flex flex-wrap gap-x-2">
+                  <span className="num font-semibold text-ink">{formatInt(x.rows)}</span>
+                  <span className="font-mono">{x.reason}</span>
+                  <span className="text-ink-3">— {x.detail}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {candidate.blockedByJobId && (
           <div className="flex items-start gap-2 rounded-md border border-low-line bg-low-soft px-3 py-2 text-xs text-low-ink">
             <Lock className="mt-0.5 size-3.5 shrink-0" aria-hidden />

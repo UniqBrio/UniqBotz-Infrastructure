@@ -1,15 +1,19 @@
 import type { ArchiveJob, ArchiveJobStatus, PipelineStepKey } from "./types";
 
 export const ACTIVE_JOB_STATUSES: ArchiveJobStatus[] = [
+  "queued",
   "preparing",
   "selecting",
   "exporting",
   "verifying",
   "ready_for_deletion",
+  "deletion_approved",
   "deleting",
+  "verifying_deletion",
+  "waiting_retry",
 ];
 
-export const TERMINAL_JOB_STATUSES: ArchiveJobStatus[] = ["completed", "failed", "requires_review"];
+export const TERMINAL_JOB_STATUSES: ArchiveJobStatus[] = ["completed", "completed_with_exceptions", "failed", "cancelled", "requires_review"];
 
 export const PIPELINE_ORDER: PipelineStepKey[] = [
   "candidate_selection",

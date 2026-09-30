@@ -37,6 +37,17 @@ export function DeletionReview({ job, appName }: { job: ArchiveJob; appName: str
     }
   };
 
+  if (source.mode === "live" && job.verification.state !== "failed" && job.deletion.state !== "completed" && job.deletion.state !== "halted") {
+    return (
+      <Panel tone="neutral" Icon={Lock} title="Deletion disabled in this deployment">
+        <p>
+          <strong>ALLOW_DELETION=false.</strong> This job can be archived and verified, but no deletion can be requested from the dashboard.
+          Records deleted: <strong className="num">0</strong>.
+        </p>
+      </Panel>
+    );
+  }
+
   if (job.verification.state === "failed") {
     return (
       <Panel tone="high" Icon={AlertOctagon} title="Deletion blocked — archive verification failed">

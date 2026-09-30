@@ -15,3 +15,5 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - `PHASE_2_ARCHITECTURE_DECISION_RECORD.md` is the authoritative architecture record for the backend; follow its decisions (§21) and do not start destructive work before its Phase 3 prerequisites.
 - `prototype/` is PROTOTYPE / SYNTHETIC DATA ONLY: it must only ever target the local disposable database (its `db.ts` safety rail refuses other hosts). Never add real credentials or production hosts there.
 - Run `npm run lint`, `npm run typecheck`, `npm test` and `npm run build` before committing.
+- Phase 3B: `worker/` is the production code path (extracted from `prototype/`). Deletion stays disabled: never change the `ALLOW_DELETION=false` default, the kill-switch default, or the `production` refusal in `DELETION_ALLOWED_ENVIRONMENTS`. The web tier (`src/server/live`, `/api/infra`) is read-only. See `PHASE_3B_IMPLEMENTATION_RECORD.md` §16 before any deletion work.
+- Integration tests (`npm run test:integration`) need the local DB from `prototype/scripts/start-db.sh` and use synthetic data only.

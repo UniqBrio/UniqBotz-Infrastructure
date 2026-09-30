@@ -7,7 +7,7 @@ import { Badge, type Tone } from "@/components/ui/Badge";
 import { Table, TD, TH, THead, TR } from "@/components/ui/Table";
 import { EmptyState } from "@/components/ui/States";
 
-const RESULT_TONE: Record<AuditResult, Tone> = { success: "ok", failure: "high", blocked: "med", simulated: "info" };
+const RESULT_TONE: Record<AuditResult, Tone> = { success: "ok", failure: "high", blocked: "med", simulated: "info", info: "neutral" };
 
 export function AuditLogTable({ entries, appNames, caption }: { entries: AuditEntry[]; appNames: Record<string, string>; caption: string }) {
   if (entries.length === 0) return <EmptyState title="No audit entries" description="Nothing matches the current scope and filters." />;

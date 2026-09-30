@@ -7,7 +7,7 @@ import { formatInt, formatLakh } from "@/lib/domain/format";
 import { useMutations, useSettings } from "@/lib/data/hooks";
 import { MockDataSource } from "@/lib/data/mock/mockDataSource";
 import { validateSettings } from "@/lib/data/validation";
-import { Badge, DemoTag } from "@/components/ui/Badge";
+import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DataState } from "@/components/ui/DataState";
@@ -70,6 +70,18 @@ function SettingsForm({ initial }: { initial: InfrastructureSettings }) {
 
   return (
     <div className="space-y-5 pb-5">
+      {s.runtime && (
+        <Section title="Runtime safety state" description="Reported by the control plane. Read-only; these cannot be changed from the dashboard.">
+          <div className="flex flex-wrap gap-2 text-xs">
+            <Badge tone={s.runtime.allowDeletion ? "high" : "ok"}>PRODUCTION DELETION: {s.runtime.allowDeletion ? "ENABLED" : "DISABLED"}</Badge>
+            <Badge tone={s.runtime.deletionKillSwitch ? "ok" : "med"}>KILL SWITCH: {s.runtime.deletionKillSwitch ? "ON" : "OFF"}</Badge>
+            <Badge tone="ok">AUTOMATED SCHEDULING: {s.runtime.schedulingEnabled ? "ENABLED" : "DISABLED"}</Badge>
+            <Badge tone="ok">NOTIFICATIONS: {s.runtime.notificationsEnabled ? "ENABLED" : "DISABLED"}</Badge>
+            <Badge tone="neutral">POLICY EDITING: {s.runtime.policyEditing === "prototype" ? "PROTOTYPE" : "DISABLED UNTIL AUTH"}</Badge>
+            <Badge tone="neutral">GRACE PERIOD: {s.safety.gracePeriodDays === null ? "NOT CONFIGURED" : `${s.safety.gracePeriodDays} days`}</Badge>
+          </div>
+        </Section>
+      )}
       <div className="grid gap-5 xl:grid-cols-2">
         <Section title="Record thresholds" description="Per-table record counts that raise alerts. Thresholds never archive data by themselves.">
           <div className="space-y-3">
@@ -95,7 +107,8 @@ function SettingsForm({ initial }: { initial: InfrastructureSettings }) {
           title="Database capacity thresholds"
           description={
             <span className="inline-flex flex-wrap items-center gap-1">
-              Percent of plan capacity. Configurable demo defaults — not confirmed business rules. <DemoTag />
+              Percent of plan capacity. Configurable — not confirmed business rules.{" "}
+              {s.capacityThresholdsFinal ? <Badge tone="ok" size="xs">FINAL</Badge> : <Badge tone="med" size="xs">NOT FINAL</Badge>}
             </span>
           }
         >
@@ -180,7 +193,10 @@ function SettingsForm({ initial }: { initial: InfrastructureSettings }) {
           <Button onClick={() => setS(initial)} disabled={!dirty || saving}>
             <RotateCcw className="size-3.5" aria-hidden /> Discard changes
           </Button>
-          <Button variant="primary" onClick={save} disabled={!dirty || saving || Object.keys(errors).length > 0}>
+          {source.mode === "live" && (
+            <span className="mr-auto text-xs text-ink-2">Read-only in live mode — settings changes need authentication (not implemented yet).</span>
+          )}
+          <Button variant="primary" onClick={save} disabled={source.mode === "live" || !dirty || saving || Object.keys(errors).length > 0}>
             {saving ? "Saving…" : "Save settings"}
           </Button>
         </div>

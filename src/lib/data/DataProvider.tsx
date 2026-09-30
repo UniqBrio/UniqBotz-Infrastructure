@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, type ReactNode } from "react";
+import { ApiDataSource } from "./api/apiDataSource";
 import { MockDataSource } from "./mock/mockDataSource";
 import { ResourceStore } from "./resourceStore";
 import type { InfrastructureDataSource } from "./source";
@@ -13,12 +14,13 @@ interface DataContextValue {
 const DataContext = createContext<DataContextValue | null>(null);
 
 /**
- * Chooses the data source for the whole app. Phase 1 always uses the mock
- * source. The backend phase replaces `createDataSource` with an API-backed
- * implementation of `InfrastructureDataSource`.
+ * Chooses the data source for the whole app.
+ *   NEXT_PUBLIC_INFRA_DATA_SOURCE=live → ApiDataSource (read-only control-plane API; no credentials in the browser)
+ *   anything else (default)            → MockDataSource (Phase 1 prototype data)
+ * The variable only selects a mode; it contains no secret.
  */
 function createDataSource(): InfrastructureDataSource {
-  return new MockDataSource();
+  return process.env.NEXT_PUBLIC_INFRA_DATA_SOURCE === "live" ? new ApiDataSource() : new MockDataSource();
 }
 
 export function DataProvider({ children }: { children: ReactNode }) {
