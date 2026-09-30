@@ -12,4 +12,5 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 - Phase 1 is a **UI-only prototype**: do not add real Supabase connections, deletion, storage, workers, schedulers or notifications unless explicitly asked.
 - All UI data flows through `InfrastructureDataSource` (`src/lib/data/source.ts`); never import mock seed data from components.
+- `PHASE_2_ARCHITECTURE_DECISION_RECORD.md` is the authoritative architecture record for the backend; follow its decisions (§21) and do not start destructive work before its Phase 3 prerequisites.
 - Run `npm run lint`, `npm run typecheck`, `npm test` and `npm run build` before committing.

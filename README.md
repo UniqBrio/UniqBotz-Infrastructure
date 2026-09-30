@@ -77,3 +77,25 @@ from `createDataSource()` in `src/lib/data/DataProvider.tsx`. Components and pag
 - Deletion is never an ordinary button: it requires a verified archive, an explicit review, and typing the job ID.
 
 Database-capacity thresholds (70/80/90%) are configurable demo defaults, not confirmed business rules.
+
+## Phase 2 Architecture Investigation
+
+Phase 2 is an architecture investigation only. It adds no backend, connections, credentials, workers,
+storage or deletion code. The outcome is
+[`PHASE_2_ARCHITECTURE_DECISION_RECORD.md`](./PHASE_2_ARCHITECTURE_DECISION_RECORD.md), the authoritative
+architecture decision record. In summary:
+
+- **Recommended shape:** a hybrid design. A central control plane (this app plus a central Postgres for
+  policies, jobs, approvals and audit) hands work to **one stateless external worker**. The worker exports,
+  verifies and deletes. Nothing is installed in application databases except two least-privilege login roles.
+- **Deletion safety:** the candidate set is frozen in one read-only snapshot, which produces an exact
+  primary-key manifest with a per-row hash. Deletion only touches **those primary keys, and only rows unchanged
+  since export**. It is never a date-range delete.
+- **Verification gate:** object existence, checksums, gzip integrity, row counts and a primary-key set match
+  are all fully verified on every job. Failure → 0 rows deleted.
+- **Supabase Free Plan realities:** 500 MB then read-only (which also blocks DELETE); no downloadable backups;
+  2 active free projects per owner; IPv6-only direct connections (use the Supavisor pooler); DELETE does not
+  shrink the database immediately.
+- **Open items:** plan/ownership of projects, archive data location (India residency decides the storage
+  provider), behaviour when the target is not reached, capacity threshold values, approval rules, archive
+  retention and erasure. See §21 of the ADR, which also lists the technical prototypes required before Phase 3.
